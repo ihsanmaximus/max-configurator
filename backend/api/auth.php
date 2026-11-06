@@ -20,23 +20,22 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $data = request_json();
-    $now = time();
-    if (!empty($_SESSION['maximus_lock_until']) && $now < (int) $_SESSION['maximus_lock_until']) {
-        json_response(['ok' => false, 'error' => 'Terlalu banyak percobaan. Coba lagi beberapa menit.'], 429);
+    if (admin_login_throttle() > 0) {
+        header('Retry-After: 900');
+        json_response(['ok' => false, 'error' => 'Terlalu banyak percobaan login dari jaringan ini. Coba lagi 15 menit.'], 429);
     }
     $password = (string) ($data['password'] ?? '');
-    if ($password === '' || !password_verify($password, $passwordHash)) {
-        $_SESSION['maximus_login_attempts'] = (int) ($_SESSION['maximus_login_attempts'] ?? 0) + 1;
-        if ($_SESSION['maximus_login_attempts'] >= 5) {
-            $_SESSION['maximus_lock_until'] = $now + 300;
-            $_SESSION['maximus_login_attempts'] = 0;
+    if ($password === '' || strlen($password) > 200 || !password_verify($password, $passwordHash)) {
+        $remaining = admin_login_throttle(true);
+        if ($remaining > 0) {
+            header('Retry-After: ' . $remaining);
+            json_response(['ok' => false, 'error' => 'Batas percobaan login tercapai. Coba lagi 15 menit.'], 429);
         }
         json_response(['ok' => false, 'error' => 'Password admin tidak sesuai.'], 401);
     }
+    admin_login_throttle(false, true);
     session_regenerate_id(true);
     $_SESSION['maximus_admin'] = true;
-    $_SESSION['maximus_login_attempts'] = 0;
-    $_SESSION['maximus_lock_until'] = 0;
     $_SESSION['maximus_csrf'] = bin2hex(random_bytes(32));
     json_response(['ok' => true, 'authenticated' => true, 'csrfToken' => $_SESSION['maximus_csrf']]);
 }
