@@ -34,6 +34,28 @@ if ($method === 'GET') {
     }
     json_response(['ok' => true, 'media' => $items]);
 }
+if ($method === 'POST' && (string) ($_GET['action'] ?? '') === 'restore') {
+    $name = (string) ($_GET['file'] ?? '');
+    if (!preg_match('/^[a-f0-9]{24}\\.(jpg|png|webp)$/', $name)) {
+        json_response(['ok' => false, 'error' => 'Nama file backup tidak valid.'], 400);
+    }
+    $backupPath = $dir . '/media-backups/' . $name;
+    if (!is_file($backupPath)) json_response(['ok' => false, 'error' => 'Backup media tidak ditemukan.'], 404);
+    if (is_file($mediaDir . '/' . $name)) json_response(['ok' => false, 'error' => 'Media dengan nama tersebut sudah tersedia.'], 409);
+    if (!copy($backupPath, $mediaDir . '/' . $name)) json_response(['ok' => false, 'error' => 'Pemulihan media gagal.'], 500);
+    json_response(['ok' => true, 'file' => $name, 'restored' => true]);
+}
+
+if ($method === 'GET' && (string) ($_GET['action'] ?? '') === 'backups') {
+    $items = [];
+    foreach (glob($dir . '/media-backups/*') ?: [] as $path) {
+        if (is_file($path) && preg_match('/^[a-f0-9]{24}\\.(jpg|png|webp)$/', basename($path))) {
+            $items[] = ['file' => basename($path), 'bytes' => filesize($path)];
+        }
+    }
+    json_response(['ok' => true, 'backups' => $items]);
+}
+
 if ($method === 'POST') {
     if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) json_response(['ok' => false, 'error' => 'File upload tidak valid.'], 422);
     $file = $_FILES['file'];
@@ -57,6 +79,20 @@ if ($method === 'DELETE') {
     if (!preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/', $name)) json_response(['ok' => false, 'error' => 'Nama file tidak valid.'], 400);
     $path = $mediaDir . '/' . $name;
     if (!is_file($path)) json_response(['ok' => false, 'error' => 'Media tidak ditemukan.'], 404);
+
+    // Preserve a copy of the media before unlinking it. This allows recovery
+    // without leaving stale references in the active configuration.
+    $mediaBackupDir = $dir . '/media-backups';
+    if (!is_dir($mediaBackupDir) && !mkdir($mediaBackupDir, 0750, true) && !is_dir($mediaBackupDir)) {
+        json_response(['ok' => false, 'error' => 'Folder backup media gagal dibuat; file tidak dihapus.'], 500);
+    }
+    if (!copy($path, $mediaBackupDir . '/' . $name)) {
+        json_response(['ok' => false, 'error' => 'Backup media gagal; file tidak dihapus.'], 500);
+    }
+    // Keep at most 30 media backups per project.
+    $mediaBackups = glob($mediaBackupDir . '/*') ?: [];
+    usort($mediaBackups, static fn($a, $b) => filemtime($b) <=> filemtime($a));
+    foreach (array_slice($mediaBackups, 30) as $oldBackup) @unlink($oldBackup);
 
     // Remove every configuration reference before deleting the file, so a later
     // project load cannot point at a missing asset.
