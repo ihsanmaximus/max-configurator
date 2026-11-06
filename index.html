@@ -21,7 +21,7 @@
 </aside>
 <main class="workspace">
 <header class="topbar">
-  <div class="project-select"><span class="muted">Project aktif</span><strong>Dr. Nabila — Sp.OG</strong></div>
+  <div class="project-select"><span class="muted">Project aktif</span><strong id="projectName">Dr. Nabila — Sp.OG</strong></div>
   <div class="top-actions"><span class="save-state" id="saveState">● Perubahan lokal</span><button class="btn btn-outline" id="openPreview">↗ Preview Browser</button><button class="btn btn-primary" id="saveButton">Simpan Perubahan</button></div>
 </header>
 <div class="mobile-tabs"><button class="active" id="showEditor">Pengaturan</button><button id="showPreview">Preview Website</button></div>
@@ -43,7 +43,7 @@
     </div>
   </section>
   <section class="panel-section hidden" id="contactPanel"><div class="form-stack">
-    <label class="field"><span>WhatsApp</span><input data-bind="whatsapp"></label><label class="field"><span>Telepon</span><input data-bind="phone"></label><label class="field"><span>Email</span><input data-bind="email" type="email"></label><label class="field"><span>Alamat</span><textarea data-bind="address" rows="2"></textarea></label><label class="field"><span>Instagram URL</span><input data-bind="instagram"></label><label class="field"><span>Facebook URL</span><input data-bind="facebook"></label><label class="field"><span>YouTube URL</span><input data-bind="youtube"></label><label class="field"><span>Google Maps URL</span><input data-bind="maps"></label>
+    <label class="field"><span>WhatsApp</span><input data-bind="contact.whatsapp"></label><label class="field"><span>Telepon</span><input data-bind="contact.phone"></label><label class="field"><span>Email</span><input data-bind="contact.email" type="email"></label><label class="field"><span>Alamat</span><textarea data-bind="contact.address" rows="2"></textarea></label><label class="field"><span>Instagram URL</span><input data-bind="contact.instagram"></label><label class="field"><span>Facebook URL</span><input data-bind="contact.facebook"></label><label class="field"><span>YouTube URL</span><input data-bind="contact.youtube"></label><label class="field"><span>Google Maps URL</span><input data-bind="contact.maps"></label>
   </div></section>
   <section class="panel-section hidden" id="sectionsPanel"><div class="notice"><b>Struktur Paket 2 bersifat tetap.</b><p>Menambah, menghapus, menonaktifkan, atau mengubah urutan section tersedia pada paket dengan struktur modular.</p></div><div class="section-list">
     <div>⌂ <b>Hero</b><small>Bagian pembuka</small><em>Aktif · Terkunci</em></div><div>◎ <b>About</b><small>Profil singkat</small><em>Aktif · Terkunci</em></div><div>✳ <b>Keahlian</b><small>Keahlian / layanan</small><em>Aktif · Terkunci</em></div><div>▤ <b>Artikel</b><small>Artikel statis</small><em>Aktif · Terkunci</em></div><div>◇ <b>FAQ & CTA</b><small>Pertanyaan dan ajakan</small><em>Aktif · Terkunci</em></div><div>⌄ <b>Footer</b><small>Informasi penutup</small><em>Aktif · Terkunci</em></div>
