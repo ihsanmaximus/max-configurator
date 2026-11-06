@@ -114,8 +114,21 @@ function write_project(string $id, array $data): void {
         json_response(['ok' => false, 'error' => 'Konfigurasi tidak dapat disimpan atau melebihi 1 MB.'], 413);
     }
 
-    // Write to a temporary file in the same directory, then atomically replace config.json.
+    // Keep a bounded rolling backup before replacing an existing configuration.
     $target = $dir . '/config.json';
+    if (is_file($target)) {
+        $backupDir = $dir . '/backups';
+        if (!is_dir($backupDir) && !mkdir($backupDir, 0750, true) && !is_dir($backupDir)) {
+            json_response(['ok' => false, 'error' => 'Folder backup gagal dibuat; konfigurasi lama dipertahankan.'], 500);
+        }
+        $backupName = gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.json';
+        if (!copy($target, $backupDir . '/' . $backupName)) {
+            json_response(['ok' => false, 'error' => 'Backup konfigurasi gagal; penyimpanan dibatalkan.'], 500);
+        }
+        $backups = glob($backupDir . '/*.json') ?: [];
+        usort($backups, static fn($a, $b) => filemtime($b) <=> filemtime($a));
+        foreach (array_slice($backups, 10) as $oldBackup) @unlink($oldBackup);
+    }
     $temporary = tempnam($dir, '.config-');
     if ($temporary === false) json_response(['ok' => false, 'error' => 'File sementara gagal dibuat.'], 500);
     $written = file_put_contents($temporary, $json, LOCK_EX);
@@ -128,8 +141,10 @@ function write_project(string $id, array $data): void {
 /** Session-based admin authentication. Configure MAXIMUS_ADMIN_PASSWORD_HASH in the PHP environment. */
 function start_admin_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) return;
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
-    if (!$https && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') $https = true;
+    // Do not trust client-supplied X-Forwarded-Proto. Set this server-side only
+    // when a trusted reverse proxy terminates TLS before PHP.
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || getenv('MAXIMUS_FORCE_SECURE_COOKIE') === '1';
     session_name('MAXIMUS_ADMIN');
     session_set_cookie_params([
         'lifetime' => 0, 'path' => '/',
