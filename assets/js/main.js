@@ -246,7 +246,7 @@ function bindStaticControls() {
     const file = event.target.files[0];
     if (!file) return;
     if (!["image/png","image/jpeg","image/webp"].includes(file.type)) { showToast("Gunakan PNG, JPG, atau WebP."); return; }
-    if (file.size > 2 * 1024 * 1024) { showToast("Ukuran logo maksimal 2 MB."); return; }
+    if (file.size > 500 * 1024) { showToast("Logo langsung maksimal 500 KB. Untuk file hingga 5 MB, gunakan Media Library."); return; }
     const reader = new FileReader();
     reader.onload = () => {
       config.logoDataUrl = reader.result;
