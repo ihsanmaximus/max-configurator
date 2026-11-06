@@ -6,7 +6,9 @@
   const activeId=()=>window.MaximusConfigurator?.getConfig()?.project?.id||"";
   const endpoint=()=>API+"?project_id="+encodeURIComponent(activeId());
   const request=async(url,options={})=>{
-    const res=await fetch(url,options);const data=await res.json().catch(()=>({}));
+    const headers={...(options.headers||{})};
+    if(["POST","PUT","DELETE"].includes(String(options.method||"GET").toUpperCase()))headers["X-CSRF-Token"]=window.MaximusAuth?.getToken?.()||"";
+    const res=await fetch(url,{...options,headers});const data=await res.json().catch(()=>({}));
     if(!res.ok||data.ok===false)throw new Error(data.error||"Media API gagal.");
     return data;
   };
