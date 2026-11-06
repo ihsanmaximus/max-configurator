@@ -153,6 +153,50 @@ function start_admin_session(): void {
     session_start();
 }
 
+/**
+ * Persistent per-IP login throttling. Returns remaining lock seconds.
+ * State files live under protected storage and are updated under an exclusive lock.
+ */
+function admin_login_throttle(bool $failed = false, bool $reset = false): int {
+    $root = dirname(MAXIMUS_STORAGE_ROOT) . '/auth-rate-limit';
+    if (!is_dir($root) && !mkdir($root, 0700, true) && !is_dir($root)) {
+        // Fail closed if global throttling cannot be persisted.
+        return 900;
+    }
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $key = hash('sha256', $ip);
+    $handle = fopen($root . '/' . $key . '.json', 'c+');
+    if ($handle === false) return 900;
+    try {
+        if (!flock($handle, LOCK_EX)) return 900;
+        rewind($handle);
+        $raw = stream_get_contents($handle);
+        $state = is_string($raw) ? json_decode($raw, true) : null;
+        if (!is_array($state)) $state = ['window' => time(), 'attempts' => 0, 'lockedUntil' => 0];
+        $now = time();
+        if ((int) ($state['lockedUntil'] ?? 0) > $now) return (int) $state['lockedUntil'] - $now;
+        if ($reset) {
+            $state = ['window' => $now, 'attempts' => 0, 'lockedUntil' => 0];
+        } else {
+            if ($now - (int) ($state['window'] ?? 0) >= 900) {
+                $state = ['window' => $now, 'attempts' => 0, 'lockedUntil' => 0];
+            }
+            if ($failed) {
+                $state['attempts'] = (int) $state['attempts'] + 1;
+                if ($state['attempts'] >= 10) $state['lockedUntil'] = $now + 900;
+            }
+        }
+        rewind($handle);
+        ftruncate($handle, 0);
+        fwrite($handle, json_encode($state));
+        fflush($handle);
+        return max(0, (int) ($state['lockedUntil'] ?? 0) - $now);
+    } finally {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+}
+
 function require_admin(): void {
     start_admin_session();
     if (empty($_SESSION['maximus_admin'])) {
