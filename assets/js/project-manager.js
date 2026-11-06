@@ -44,6 +44,7 @@
   }
   async function openProject(id) {
     try {
+      if (window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Ada perubahan yang belum disimpan. Buang perubahan dan buka project lain?")) return;
       const result=await api(API+"?id="+encodeURIComponent(id));
       window.MaximusConfigurator.setConfig(result.config);
       window.dispatchEvent(new Event("maximus:project-changed"));
@@ -95,7 +96,9 @@
         window.MaximusConfigurator.setConfig(loaded.config);
       } else {
         const current=window.MaximusConfigurator.getConfig().project.id;
-        if(!projects.some(p=>p.id===current)) await openProject(projects[0].id);
+        const activeProject=projects.some(p=>p.id===current) ? current : projects[0].id;
+        // Server JSON is the source of truth; never trust a stale browser draft on startup.
+        await openProject(activeProject);
       }
     } catch(e) {
       console.warn("Project Manager menunggu PHP API:",e.message);
