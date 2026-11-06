@@ -72,6 +72,13 @@ expect_code 200 -b "$COOKIE_JAR" "$BASE_URL/backend/api/projects.php?id=$PROJECT
 BACKUP_FILE="$(jq -r '.backups[0].file // empty' /tmp/maximus-smoke-response)"
 [[ -n "$BACKUP_FILE" ]] || fail "Config backup missing"
 
+# Inspect the exact selected snapshot before sending it to the restore API.
+BACKUP_PATH="backend/storage/projects/$PROJECT_ID/backups/$BACKUP_FILE"
+[[ -f "$BACKUP_PATH" ]] || fail "Listed config backup does not exist on disk: $BACKUP_PATH"
+jq '{project: .project, media: .media, topLevelKeys: keys}' "$BACKUP_PATH"
+jq -e --arg file "$MEDIA_FILE" '.project.name == "Smoke Test" and .media.hero.file == $file' "$BACKUP_PATH" >/dev/null \
+  || fail "Selected config backup does not contain the expected project name and restored media reference"
+
 # Restore media first, then restore the config snapshot that references it.
 expect_code 200 -b "$COOKIE_JAR" -X POST \
   -H 'Content-Type: application/json' -H "X-CSRF-Token: $TOKEN" \
