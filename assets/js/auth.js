@@ -7,7 +7,7 @@
   overlay.id="maximusAuthGate";
   overlay.className="auth-gate";
   overlay.innerHTML='<form class="auth-card" id="maximusLoginForm"><div class="auth-mark">M</div><p class="auth-eyebrow">MAXIMUS WORKSPACE</p><h1>Admin Login</h1><p class="auth-copy">Masuk untuk mengelola project dan media Configurator.</p><label for="maximusPassword">Password admin</label><input id="maximusPassword" type="password" autocomplete="current-password" required maxlength="200" placeholder="Masukkan password admin"><button type="submit" id="maximusLoginButton">Masuk ke Configurator</button><p id="maximusAuthMessage" role="status" aria-live="polite"></p></form>';
-  document.addEventListener("DOMContentLoaded", () => document.body.appendChild(overlay));
+  document.body.appendChild(overlay);
   const message=text=>{const el=document.querySelector("#maximusAuthMessage");if(el)el.textContent=text;};
   async function request(method,body){
     const response=await fetch(API,{method,headers:{"Content-Type":"application/json",...(csrfToken?{"X-CSRF-Token":csrfToken}:{})},...(body?{body:JSON.stringify(body)}:{})});
