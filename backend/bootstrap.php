@@ -130,7 +130,12 @@ function write_project(string $id, array $data): void {
             json_response(['ok' => false, 'error' => 'Backup konfigurasi gagal; penyimpanan dibatalkan.'], 500);
         }
         $backups = glob($backupDir . '/*.json') ?: [];
-        usort($backups, static fn($a, $b) => filemtime($b) <=> filemtime($a));
+        usort($backups, static function ($a, $b): int {
+            $timeOrder = (filemtime($b) ?: 0) <=> (filemtime($a) ?: 0);
+            // Filesystem timestamps may have only second-level precision; the filename
+            // carries microseconds for deterministic ordering within the same second.
+            return $timeOrder !== 0 ? $timeOrder : strcmp(basename($b), basename($a));
+        });
         foreach (array_slice($backups, 10) as $oldBackup) @unlink($oldBackup);
     }
     $temporary = tempnam($dir, '.config-');
