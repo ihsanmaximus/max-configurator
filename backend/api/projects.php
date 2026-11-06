@@ -1,9 +1,11 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
+require_admin();
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if (in_array($method, ['POST', 'PUT', 'DELETE'], true)) require_csrf();
 ensure_storage();
 
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $id = isset($_GET['id']) ? (string) $_GET['id'] : '';
 
 if ($method === 'GET' && $id === '') {
