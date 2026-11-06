@@ -3,7 +3,9 @@
   const API = "backend/api/projects.php";
   const $ = s => document.querySelector(s);
   const api = async (url, options={}) => {
-    const response = await fetch(url, { headers: { "Content-Type": "application/json", ...(options.headers||{}) }, ...options });
+    const headers = { "Content-Type": "application/json", ...(options.headers||{}) };
+    if (["POST","PUT","DELETE"].includes(String(options.method||"GET").toUpperCase())) headers["X-CSRF-Token"] = window.MaximusAuth?.getToken?.() || "";
+    const response = await fetch(url, { ...options, headers });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || data.ok === false) throw new Error(data.error || "Permintaan ke server gagal.");
     return data;
