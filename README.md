@@ -40,12 +40,33 @@ Semua endpoint project dan media memerlukan sesi admin. Operasi POST/PUT/DELETE 
 
 Autentikasi ini adalah gerbang admin satu akun untuk workspace internal, bukan sistem multi-user. Sebelum publikasi tetap perlu meninjau konfigurasi hosting, backup, rate limit tambahan di server/WAF, izin file, dan pengujian keamanan.
 
-## Menjalankan backend secara lokal
-Dari root repository, jalankan PHP built-in server:
+## Menjalankan backend untuk uji browser
+
+Persyaratan minimum: **PHP 8.1+**, ekstensi `fileinfo`, sesi PHP aktif, dan folder `backend/storage` dapat ditulis oleh proses PHP. Gunakan hosting/server dengan disk persisten untuk uji penyimpanan. PHP built-in server cocok untuk pengujian lokal, bukan deployment publik.
+
+Buat hash password admin di terminal (ganti placeholder dengan password uji yang kuat; jangan commit hash/password ke Git):
 
 ```bash
+php -r "echo password_hash('GANTI_DENGAN_PASSWORD_UJI_YANG_KUAT', PASSWORD_DEFAULT), PHP_EOL;"
+```
+
+Linux/macOS, jalankan dari root repository setelah mengisi hash hasil perintah di atas:
+
+```bash
+export MAXIMUS_ADMIN_PASSWORD_HASH='TEMPEL_HASH_HASIL_GENERATE'
 php -S 127.0.0.1:8080 -t .
 ```
+
+Windows PowerShell:
+
+```powershell
+$env:MAXIMUS_ADMIN_PASSWORD_HASH = 'TEMPEL_HASH_HASIL_GENERATE'
+php -S 127.0.0.1:8080 -t .
+```
+
+Lalu buka `http://127.0.0.1:8080` pada browser yang sama. Jangan expose PHP built-in server ke internet. Jika memakai Codespaces/port forwarding, pastikan environment variable dipasang pada terminal/server process yang menjalankan PHP dan gunakan URL browser yang diteruskan oleh Codespaces.
+
+Backend membatasi JSON project hingga 1 MB, memeriksa kompleksitas/ukuran field dan referensi media per project, lalu menulis konfigurasi melalui file sementara + rename agar file konfigurasi tidak mudah korup saat proses simpan terputus. Upload gambar diperiksa berdasarkan MIME aktual dan dimensi (maksimal 40 megapiksel).
 
 API awal:
 - `GET /backend/api/auth.php` — status sesi admin dan token CSRF.
@@ -63,7 +84,7 @@ API awal:
 Folder penyimpanan dibuat otomatis di `backend/storage/projects/`. Jangan letakkan folder storage di lokasi publik pada hosting produksi.
 
 ## Keamanan dan batasan sebelum produksi
-Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet sampai autentikasi admin dikonfigurasi dan diuji. Sesi admin dan pemeriksaan CSRF dasar sudah ditambahkan; sebelum produksi tetap wajib menambahkan/meninjau otorisasi project, rate limiting pada server/WAF, batas request, validasi konfigurasi menyeluruh, backup, audit log, dan pengujian permission storage. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
+Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet sampai autentikasi admin dikonfigurasi dan diuji. Sesi admin dan pemeriksaan CSRF dasar sudah ditambahkan. Validasi ukuran/kompleksitas JSON, validasi referensi media, penulisan atomik, dan pemeriksaan konten/dimensi gambar juga sudah diterapkan. Sebelum produksi tetap wajib menambahkan/meninjau rate limiting pada server/WAF, backup dan pemulihan yang benar-benar diuji, audit log, permission storage, serta pengujian keamanan dan alur end-to-end. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
 
 ## Checklist pengujian end-to-end
 1. Buat project A dan project B; pastikan project B dimulai dari konten default.
