@@ -14,7 +14,7 @@ expect_code() {
   actual="$(curl -sS -o /tmp/maximus-smoke-response -w '%{http_code}' "$@")"
   if [[ "$actual" != "$expected" ]]; then
     cat /tmp/maximus-smoke-response >&2 || true
-    fail "Expected HTTP $expected, got $actual"
+    fail "Expected HTTP $expected, got $actual for request: $*"
   fi
 }
 json() { cat /tmp/maximus-smoke-response; }
