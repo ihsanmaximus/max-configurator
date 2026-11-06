@@ -56,7 +56,7 @@ if ($action === 'restore' && $method === 'POST') {
     if (!is_dir($dir)) json_response(['ok' => false, 'error' => 'Project tidak ditemukan.'], 404);
     $data = request_json();
     $backupName = (string) ($data['file'] ?? '');
-    if (!preg_match('/^[0-9]{8}_[0-9]{6}_[a-f0-9]{8}\\.json$/', $backupName)) {
+    if (!preg_match('/^[0-9]{8}_[0-9]{6}_(?:[0-9]{6}_)?[a-f0-9]{8}\\.json$/', $backupName)) {
         json_response(['ok' => false, 'error' => 'Nama backup tidak valid.'], 400);
     }
     $backupPath = $dir . '/backups/' . $backupName;
