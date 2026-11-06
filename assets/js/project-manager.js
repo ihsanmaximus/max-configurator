@@ -36,7 +36,7 @@
     const name=$("#pmNewName").value.trim();
     if(!name) { $("#pmStatus").textContent="Masukkan nama project."; return; }
     try {
-      const base=window.MaximusConfigurator.getConfig();
+      const base=window.MaximusConfigurator.getDefaultConfig();
       base.project={id:"",name,package:"paket-2"};
       const result=await api(API,{method:"POST",body:JSON.stringify({name,config:base})});
       await refresh(); await openProject(result.project.id); $("#pmNewName").value=""; renderManager();
@@ -78,7 +78,7 @@
     } catch(e) { $("#pmStatus").textContent=e.message; }
   }
   async function createProjectFromDefault() {
-    const base=window.MaximusConfigurator.getConfig();
+    const base=window.MaximusConfigurator.getDefaultConfig();
     const name="Project Baru";
     const result=await api(API,{method:"POST",body:JSON.stringify({name,config:base})});
     const loaded=await api(API+"?id="+encodeURIComponent(result.project.id));
@@ -89,7 +89,7 @@
     try {
       await refresh();
       if(!projects.length) {
-        const base=window.MaximusConfigurator.getConfig();
+        const base=window.MaximusConfigurator.getDefaultConfig();
         const result=await api(API,{method:"POST",body:JSON.stringify({name:base.project.name,config:base})});
         await refresh();
         const loaded=await api(API+"?id="+encodeURIComponent(result.project.id));
