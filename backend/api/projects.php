@@ -24,7 +24,7 @@ if ($method === 'GET' && $id === '') {
     json_response(['ok' => true, 'projects' => $projects]);
 }
 
-if ($method === 'POST') {
+if ($method === 'POST' && $id === '') {
     $data = request_json();
     $name = trim((string) ($data['name'] ?? ''));
     $nameLength = preg_match_all('/./us', $name);
