@@ -57,3 +57,31 @@ function write_project(string $id, array $data): void {
         json_response(['ok' => false, 'error' => 'Konfigurasi gagal disimpan.'], 500);
     }
 }
+
+
+/** Session-based admin authentication. Configure MAXIMUS_ADMIN_PASSWORD_HASH in the PHP environment. */
+function start_admin_session(): void {
+    if (session_status() === PHP_SESSION_ACTIVE) return;
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    session_name('MAXIMUS_ADMIN');
+    session_set_cookie_params([
+        'lifetime' => 0, 'path' => '/',
+        'secure' => $https, 'httponly' => true, 'samesite' => 'Strict'
+    ]);
+    session_start();
+}
+
+function require_admin(): void {
+    start_admin_session();
+    if (empty($_SESSION['maximus_admin'])) {
+        json_response(['ok' => false, 'error' => 'Sesi admin tidak aktif. Silakan login kembali.'], 401);
+    }
+}
+
+function require_csrf(): void {
+    $provided = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    $known = (string) ($_SESSION['maximus_csrf'] ?? '');
+    if ($known === '' || $provided === '' || !hash_equals($known, $provided)) {
+        json_response(['ok' => false, 'error' => 'Token keamanan tidak valid. Muat ulang halaman dan coba lagi.'], 403);
+    }
+}
