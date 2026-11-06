@@ -23,6 +23,7 @@
       if(!data.media.length){grid.innerHTML='<p class="media-empty">Belum ada gambar di project ini.</p>';return;}
       grid.innerHTML=data.media.map(item=>'<article class="media-card"><div class="media-thumb" data-thumb="'+esc(item.file)+'">Memuat…</div><div class="media-meta"><small>'+esc(item.file)+'</small><small>'+Math.round(item.bytes/1024)+' KB</small><div class="media-actions"><button type="button" data-use="'+esc(item.file)+'">Pilih</button><button type="button" class="danger" data-remove="'+esc(item.file)+'">Hapus</button></div></div></article>').join("");
       for(const item of data.media){
+        if(projectId!==activeId())return;
         const response=await fetch(API+"?project_id="+encodeURIComponent(projectId)+"&file="+encodeURIComponent(item.file));
         if(!response.ok)continue;
         const url=URL.createObjectURL(await response.blob());urls.push(url);
@@ -40,7 +41,7 @@
     cfg.media=cfg.media||{logo:null,hero:null,about:null,expertise:null};
     cfg.media[target]={file};
     if(target==="logo")cfg.logoDataUrl="";
-    window.MaximusConfigurator.setConfig(cfg);
+    window.MaximusConfigurator.updateConfig(cfg);
     const labels={hero:"Hero utama",about:"Foto About",expertise:"Foto Keahlian",logo:"Logo website"};
     window.MaximusConfigurator.toast("Gambar berhasil dipasang: "+labels[target]+".");
   }
@@ -54,8 +55,10 @@
   }
   async function removeMedia(file){
     if(!confirm("Hapus file "+file+" dari project ini?"))return;
+    const projectId=activeId();
     try{
-      await request(endpoint()+"&file="+encodeURIComponent(file),{method:"DELETE"});
+      await request(API+"?project_id="+encodeURIComponent(projectId)+"&file="+encodeURIComponent(file),{method:"DELETE"});
+      if(projectId!==activeId())return;
       const cfg=window.MaximusConfigurator.getConfig();
       let changed=false;
       Object.keys(cfg.media||{}).forEach(slot=>{
