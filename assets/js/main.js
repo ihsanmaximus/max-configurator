@@ -297,7 +297,7 @@ window.MaximusConfigurator = {
     config = mergeDefaults(next, DEFAULT_CONFIG);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch (error) { console.warn("Draft lokal tidak dapat diperbarui:", error); }
     $("#projectName").textContent = config.project.name;
-    $("[data-bind]").forEach(element => { let value = config; element.dataset.bind.split(".").forEach(key => value = value?.[key]); element.value = value ?? ""; });
+    $$("[data-bind]").forEach(element => { let value = config; element.dataset.bind.split(".").forEach(key => value = value?.[key]); element.value = value ?? ""; });
     const selectedLogo = config.logoDataUrl || mediaUrl("logo");
     $("#logoPreview").innerHTML = selectedLogo
       ? '<img alt="Logo preview" src="' + esc(selectedLogo) + '" style="max-width:100%;max-height:100%;object-fit:contain">'
