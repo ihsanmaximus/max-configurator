@@ -33,11 +33,14 @@
     }catch(e){grid.innerHTML='<p class="media-empty">'+esc(e.message)+'</p>';}
   }
   function useMedia(file){
-    const url=API+"?project_id="+encodeURIComponent(activeId())+"&file="+encodeURIComponent(file);
+    const target=$("#mediaTarget")?.value||"hero";
     const cfg=window.MaximusConfigurator.getConfig();
-    cfg.logoMedia={file,url};
+    cfg.media=cfg.media||{logo:null,hero:null,about:null,expertise:null};
+    cfg.media[target]={file};
+    if(target==="logo")cfg.logoDataUrl="";
     window.MaximusConfigurator.setConfig(cfg);
-    window.MaximusConfigurator.toast("Media dipilih sebagai referensi logo. Pengaitan ke section akan diselesaikan pada tahap berikutnya.");
+    const labels={hero:"Hero utama",about:"Foto About",expertise:"Foto Keahlian",logo:"Logo website"};
+    window.MaximusConfigurator.toast("Gambar berhasil dipasang: "+labels[target]+".");
   }
   async function upload(){
     const input=$("#mediaFile");const file=input.files?.[0];if(!file)return window.MaximusConfigurator.toast("Pilih gambar terlebih dahulu.");
