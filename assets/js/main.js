@@ -139,13 +139,14 @@ function renderEditor() {
 }
 function switchPanel(name) {
   activePanel = name;
-  ["content","identity","contact","sections"].forEach(panel => $("#" + panel + "Panel").classList.toggle("hidden", panel !== name));
+  ["content","identity","contact","sections","media"].forEach(panel => $("#" + panel + "Panel").classList.toggle("hidden", panel !== name));
   $$(".nav-item").forEach(button => button.classList.toggle("active", button.dataset.panel === name));
   const titles = {
     content:["Konten Website","Perbarui informasi yang tampil di website."],
     identity:["Identitas Visual","Kelola identitas dasar website."],
     contact:["Kontak & Sosial","Perbarui kanal komunikasi dan tautan sosial."],
-    sections:["Daftar Section","Struktur website Paket 2 yang telah ditetapkan."]
+    sections:["Daftar Section","Struktur website Paket 2 yang telah ditetapkan."],
+    media:["Media Library","Kelola gambar untuk project aktif."]
   };
   $("#panelTitle").textContent = titles[name][0];
   $("#panelSubtitle").textContent = titles[name][1];
@@ -279,8 +280,9 @@ function initialize() {
     keys.forEach(key => value = value?.[key]);
     element.value = value ?? "";
   });
-  $("#logoPreview").innerHTML = config.logoDataUrl
-    ? '<img alt="Logo preview" src="' + config.logoDataUrl + '" style="max-width:100%;max-height:100%;object-fit:contain">'
+  const initialLogo = config.logoDataUrl || mediaUrl("logo");
+  $("#logoPreview").innerHTML = initialLogo
+    ? '<img alt="Logo preview" src="' + esc(initialLogo) + '" style="max-width:100%;max-height:100%;object-fit:contain">'
     : esc((config.logoText || "M").slice(0,2).toUpperCase());
   bindStaticControls();
   renderEditor();
