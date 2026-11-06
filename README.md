@@ -29,6 +29,17 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 
 **Catatan Vercel:** PHP bukan runtime resmi first-party yang dapat diasumsikan tersedia untuk deployment biasa. Runtime PHP yang pernah tersedia di ekosistem Vercel bersifat komunitas, dan filesystem function tidak cocok untuk penyimpanan JSON permanen. Vercel dapat dipakai untuk menguji tampilan atau endpoint stateless, tetapi penyimpanan project/media persisten harus memakai layanan storage eksternal atau hosting PHP dengan disk persisten.
 
+## Autentikasi admin (wajib sebelum deployment)
+Semua endpoint project dan media memerlukan sesi admin. Operasi POST/PUT/DELETE juga memerlukan token CSRF. Password tidak disimpan di repository atau browser; backend memverifikasi hash dari environment PHP.
+
+1. Buat hash password kuat menggunakan fungsi password_hash() dari PHP CLI pada server.
+2. Atur hasil hash sebagai environment variable PHP bernama MAXIMUS_ADMIN_PASSWORD_HASH pada hosting/PHP-FPM. Jangan menaruh password atau hash di file JavaScript, HTML, atau Git.
+3. Pastikan HTTPS aktif. Cookie sesi menggunakan HttpOnly dan SameSite=Strict; atribut Secure aktif saat PHP mendeteksi HTTPS.
+4. Buka Configurator dan login menggunakan password asli (bukan hash). Gunakan tombol Keluar untuk mengakhiri sesi.
+5. Jika environment variable belum diatur, API login menolak akses dengan status konfigurasi 503 (fail-closed).
+
+Autentikasi ini adalah gerbang admin satu akun untuk workspace internal, bukan sistem multi-user. Sebelum publikasi tetap perlu meninjau konfigurasi hosting, backup, rate limit tambahan di server/WAF, izin file, dan pengujian keamanan.
+
 ## Menjalankan backend secara lokal
 Dari root repository, jalankan PHP built-in server:
 
@@ -49,7 +60,7 @@ API awal:
 Folder penyimpanan dibuat otomatis di `backend/storage/projects/`. Jangan letakkan folder storage di lokasi publik pada hosting produksi.
 
 ## Keamanan dan batasan sebelum produksi
-Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet. Sebelum produksi wajib ditambahkan autentikasi admin, otorisasi per project, proteksi CSRF, rate limiting, batas request, validasi konfigurasi, backup, dan pengujian permission storage. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
+Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet sampai autentikasi admin dikonfigurasi dan diuji. Sesi admin dan pemeriksaan CSRF dasar sudah ditambahkan; sebelum produksi tetap wajib menambahkan/meninjau otorisasi project, rate limiting pada server/WAF, batas request, validasi konfigurasi menyeluruh, backup, audit log, dan pengujian permission storage. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
 
 ## Checklist pengujian end-to-end
 1. Buat project A dan project B; pastikan project B dimulai dari konten default.
