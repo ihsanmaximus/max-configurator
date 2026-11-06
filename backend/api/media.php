@@ -57,7 +57,21 @@ if ($method === 'DELETE') {
     if (!preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/', $name)) json_response(['ok' => false, 'error' => 'Nama file tidak valid.'], 400);
     $path = $mediaDir . '/' . $name;
     if (!is_file($path)) json_response(['ok' => false, 'error' => 'Media tidak ditemukan.'], 404);
-    unlink($path);
+
+    // Remove every configuration reference before deleting the file, so a later
+    // project load cannot point at a missing asset.
+    $config = read_project($projectId);
+    if ($config !== null && is_array($config['media'] ?? null)) {
+        $changed = false;
+        foreach (['logo', 'hero', 'about', 'expertise'] as $slot) {
+            if (($config['media'][$slot]['file'] ?? null) === $name) {
+                $config['media'][$slot] = null;
+                $changed = true;
+            }
+        }
+        if ($changed) write_project($projectId, $config);
+    }
+    if (!unlink($path)) json_response(['ok' => false, 'error' => 'Media gagal dihapus. Referensi konfigurasi sudah dilepas.'], 500);
     json_response(['ok' => true]);
 }
 header('Allow: GET, POST, DELETE');
