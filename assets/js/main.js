@@ -291,6 +291,7 @@ function initialize() {
 }
 window.MaximusConfigurator = {
   getConfig: () => clone(config),
+  getDefaultConfig: () => clone(DEFAULT_CONFIG),
   hasUnsavedChanges: () => dirtyState,
   setConfig: next => {
     config = mergeDefaults(next, DEFAULT_CONFIG);
