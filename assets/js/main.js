@@ -9,6 +9,7 @@ const DEFAULT_CONFIG = {
   brand: "Dr. Nabila, Sp.OG",
   logoText: "Dr. Nabila, Sp.OG",
   logoDataUrl: "",
+  media: { logo: null, hero: null, about: null, expertise: null },
   brandDescription: "Spesialis Kebidanan dan Kandungan",
   contact: {
     whatsapp: "+62 812 3456 7890", phone: "+62 21 1234 5678",
@@ -169,10 +170,19 @@ function contactLinks() {
   });
   return links.join("");
 }
+function mediaUrl(slot) {
+  const item = config.media?.[slot];
+  if (!item?.file || !config.project?.id) return "";
+  return "backend/api/media.php?project_id=" + encodeURIComponent(config.project.id) + "&file=" + encodeURIComponent(item.file);
+}
 function renderPreview() {
   const s = config.sections;
-  const logo = config.logoDataUrl
-    ? '<img src="' + config.logoDataUrl + '" alt="Logo ' + esc(config.brand) + '" style="max-height:42px;max-width:150px;object-fit:contain">'
+  const logoSrc = config.logoDataUrl || mediaUrl("logo");
+  const heroSrc = mediaUrl("hero");
+  const aboutSrc = mediaUrl("about");
+  const expertiseSrc = mediaUrl("expertise");
+  const logo = logoSrc
+    ? '<img src="' + esc(logoSrc) + '" alt="Logo ' + esc(config.brand) + '" style="max-height:42px;max-width:150px;object-fit:contain">'
     : '<span class="logo">' + esc(config.logoText || config.brand) + '</span>';
   const services = s.expertise.items.map(item => '<div class="card">' + esc(item) + '</div>').join("");
   const articles = s.articles.items.map(item => '<article class="card"><h3>' + esc(item.title) + '</h3><p>' + esc(item.excerpt) + '</p></article>').join("");
@@ -180,12 +190,12 @@ function renderPreview() {
   const phone = normalizePhone(config.contact.whatsapp);
   const wa = phone ? "https://wa.me/" + phone : "#";
   const page = '<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(config.brand) + '</title><style>' +
-    '*{box-sizing:border-box}body{margin:0;color:#173c2b;font-family:Arial,sans-serif}.nav{min-height:68px;padding:10px 6%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf0ed;gap:15px}.logo{font:600 18px Georgia}.links{font-size:11px;display:flex;gap:18px;color:#526358}.links a,.contact a{color:inherit;text-decoration:none}.hero{min-height:510px;padding:65px 7%;display:flex;align-items:center;position:relative;overflow:hidden;background:linear-gradient(110deg,#f7f1ed,#f9f8f4 60%,#e8eee5)}.copy{max-width:57%;position:relative;z-index:1}.kicker{font-size:10px;letter-spacing:2px;color:#7e9b76}.hero h1{font:600 clamp(34px,5vw,58px)/1.08 Georgia;margin:18px 0;color:#17462f}.hero h2{font:400 19px/1.45 Georgia;color:#36473b}.hero p,.section p{font-size:13px;line-height:1.7;color:#58665c;max-width:650px}.cta{display:inline-block;margin-top:16px;background:#245d3b;color:white;border-radius:30px;padding:13px 20px;text-decoration:none;font-size:11px}.portrait{position:absolute;right:4%;bottom:0;width:37%;height:88%;border-radius:180px 180px 0 0;background:linear-gradient(145deg,#e8d6d0,#dbe6d9);display:grid;place-items:center;color:#68806d;font:italic 14px Georgia;text-align:center}.section{padding:54px 8%;text-align:center;border-bottom:1px solid #edf0ed}.section h2{font:600 30px Georgia;color:#214a32}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:25px;text-align:left}.card{background:#f5f7f3;padding:20px;border-radius:12px;font-size:12px;color:#48614e}.card h3{font:600 17px Georgia}.card p{font-size:12px}.faq{max-width:720px;margin:10px auto;text-align:left;border:1px solid #e5ebe5;padding:15px;border-radius:9px;font-size:13px}.faq summary{cursor:pointer;font-weight:600}.faq p{margin-bottom:0}.contact{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:20px;font-size:12px}.footer{padding:25px 8%;background:#163e2d;color:#dce9de;font-size:11px;display:flex;justify-content:space-between;gap:15px}.footer a{color:inherit}' +
+    '*{box-sizing:border-box}body{margin:0;color:#173c2b;font-family:Arial,sans-serif}.nav{min-height:68px;padding:10px 6%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf0ed;gap:15px}.logo{font:600 18px Georgia}.links{font-size:11px;display:flex;gap:18px;color:#526358}.links a,.contact a{color:inherit;text-decoration:none}.hero{min-height:510px;padding:65px 7%;display:flex;align-items:center;position:relative;overflow:hidden;background:linear-gradient(110deg,#f7f1ed,#f9f8f4 60%,#e8eee5)}.copy{max-width:57%;position:relative;z-index:1}.kicker{font-size:10px;letter-spacing:2px;color:#7e9b76}.hero h1{font:600 clamp(34px,5vw,58px)/1.08 Georgia;margin:18px 0;color:#17462f}.hero h2{font:400 19px/1.45 Georgia;color:#36473b}.hero p,.section p{font-size:13px;line-height:1.7;color:#58665c;max-width:650px}.cta{display:inline-block;margin-top:16px;background:#245d3b;color:white;border-radius:30px;padding:13px 20px;text-decoration:none;font-size:11px}.portrait{position:absolute;right:4%;bottom:0;width:37%;height:88%;border-radius:180px 180px 0 0;background:linear-gradient(145deg,#e8d6d0,#dbe6d9);display:grid;place-items:center;color:#68806d;font:italic 14px Georgia;text-align:center;overflow:hidden}.portrait img{width:100%;height:100%;object-fit:cover}.section-image{display:block;width:min(340px,100%);max-height:260px;object-fit:cover;border-radius:14px;margin:22px auto 0}.section{padding:54px 8%;text-align:center;border-bottom:1px solid #edf0ed}.section h2{font:600 30px Georgia;color:#214a32}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-top:25px;text-align:left}.card{background:#f5f7f3;padding:20px;border-radius:12px;font-size:12px;color:#48614e}.card h3{font:600 17px Georgia}.card p{font-size:12px}.faq{max-width:720px;margin:10px auto;text-align:left;border:1px solid #e5ebe5;padding:15px;border-radius:9px;font-size:13px}.faq summary{cursor:pointer;font-weight:600}.faq p{margin-bottom:0}.contact{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:20px;font-size:12px}.footer{padding:25px 8%;background:#163e2d;color:#dce9de;font-size:11px;display:flex;justify-content:space-between;gap:15px}.footer a{color:inherit}' +
     '@media(max-width:600px){.links{display:none}.hero{min-height:650px;padding:42px 8%;align-items:flex-start}.copy{max-width:100%}.hero h1{font-size:39px}.portrait{width:75%;height:38%;right:12%;opacity:.48}.cards{grid-template-columns:1fr}.footer{flex-direction:column}.section{padding:42px 7%}}' +
     '</style></head><body><header class="nav">' + logo + '<nav class="links"><a href="#top">Beranda</a><a href="#about">Tentang</a><a href="#expertise">Keahlian</a><a href="#articles">Artikel</a><a href="#faq">FAQ</a></nav></header>' +
-    '<main id="top"><section class="hero"><div class="copy"><div class="kicker">PRAKTIK PROFESIONAL</div><h1>' + esc(s.hero.title) + '</h1><h2>' + esc(s.hero.subtitle) + '</h2><p>' + esc(s.hero.description) + '</p><a class="cta" href="' + esc(wa) + '">' + esc(s.hero.button) + ' →</a></div><div class="portrait">Area gambar utama website</div></section>' +
-    '<section class="section" id="about"><h2>' + esc(s.about.title) + '</h2><p>' + esc(s.about.description) + '</p><a class="cta" href="' + esc(wa) + '">' + esc(s.about.button) + '</a></section>' +
-    '<section class="section" id="expertise"><h2>' + esc(s.expertise.title) + '</h2><p>' + esc(s.expertise.description) + '</p><div class="cards">' + services + '</div></section>' +
+    '<main id="top"><section class="hero"><div class="copy"><div class="kicker">PRAKTIK PROFESIONAL</div><h1>' + esc(s.hero.title) + '</h1><h2>' + esc(s.hero.subtitle) + '</h2><p>' + esc(s.hero.description) + '</p><a class="cta" href="' + esc(wa) + '">' + esc(s.hero.button) + ' →</a></div><div class="portrait">' + (heroSrc ? '<img src="' + esc(heroSrc) + '" alt="Foto utama">' : 'Area gambar utama website') + '</div></section>' +
+    '<section class="section" id="about"><h2>' + esc(s.about.title) + '</h2><p>' + esc(s.about.description) + '</p>' + (aboutSrc ? '<img class="section-image" src="' + esc(aboutSrc) + '" alt="Foto profil">' : '') + '<a class="cta" href="' + esc(wa) + '">' + esc(s.about.button) + '</a></section>' +
+    '<section class="section" id="expertise"><h2>' + esc(s.expertise.title) + '</h2><p>' + esc(s.expertise.description) + '</p>' + (expertiseSrc ? '<img class="section-image" src="' + esc(expertiseSrc) + '" alt="Foto keahlian">' : '') + '<div class="cards">' + services + '</div></section>' +
     '<section class="section" id="articles"><h2>' + esc(s.articles.title) + '</h2><p>' + esc(s.articles.description) + '</p><div class="cards">' + articles + '</div></section>' +
     '<section class="section" id="faq"><h2>' + esc(s.faq.title) + '</h2><p>' + esc(s.faq.description) + '</p>' + faqs + '<a class="cta" href="' + esc(wa) + '">' + esc(s.faq.button) + '</a></section></main>' +
     '<footer class="footer"><span><b>' + esc(config.brand) + '</b><br>' + esc(s.footer.description) + '<div class="contact">' + contactLinks() + '</div></span><span>' + esc(s.footer.copyright) + '</span></footer></body></html>';
