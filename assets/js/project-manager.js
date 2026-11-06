@@ -60,11 +60,16 @@
     const p=projects.find(x=>x.id===id); if(!p) return;
     const name=prompt("Nama project baru:",p.name); if(name===null) return;
     const clean=name.trim(); if(!clean) return;
+    const activeConfig=window.MaximusConfigurator.getConfig();
+    const isActive=activeConfig.project.id===id;
+    if(isActive && window.MaximusConfigurator.hasUnsavedChanges?.() &&
+      !confirm("Project aktif memiliki perubahan yang belum disimpan. Mengganti nama sekarang juga akan menyimpan perubahan tersebut. Lanjutkan?")) return;
     try {
-      const result=await api(API+"?id="+encodeURIComponent(id));
+      // Preserve the active editor state; never replace unsaved work with a stale server read.
+      const result=isActive ? {config:activeConfig} : await api(API+"?id="+encodeURIComponent(id));
       result.config.project.name=clean;
       await api(API+"?id="+encodeURIComponent(id),{method:"PUT",body:JSON.stringify(result.config)});
-      if(window.MaximusConfigurator.getConfig().project.id===id) window.MaximusConfigurator.setConfig(result.config);
+      if(isActive) window.MaximusConfigurator.setConfig(result.config);
       await refresh(); renderManager();
     } catch(e) { $("#pmStatus").textContent=e.message; }
   }
@@ -87,7 +92,9 @@
     const name="Project Baru";
     const result=await api(API,{method:"POST",body:JSON.stringify({name,config:base})});
     const loaded=await api(API+"?id="+encodeURIComponent(result.project.id));
-    window.MaximusConfigurator.setConfig(loaded.config); await refresh();
+    window.MaximusConfigurator.setConfig(loaded.config);
+    window.dispatchEvent(new Event("maximus:project-changed"));
+    await refresh();
   }
   managerButton.addEventListener("click",async()=>{ try { await refresh(); renderManager(); } catch(e) { window.MaximusConfigurator.toast("PHP API belum dapat dijangkau: "+e.message); }});
   (async()=>{
