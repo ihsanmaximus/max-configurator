@@ -54,7 +54,7 @@ jobs:
       - name: Backend API smoke test
         run: |
           set -euo pipefail
-          export MAXIMUS_TEST_PASSWORD="maximus-browser-smoke"
+          export MAXIMUS_TEST_PASSWORD="maximus-smoke-password"
           export MAXIMUS_ADMIN_PASSWORD_HASH="$(php -r 'echo password_hash(getenv("MAXIMUS_TEST_PASSWORD"), PASSWORD_DEFAULT);')"
           php -S 127.0.0.1:8080 -t . > /tmp/maximus-php-server.log 2>&1 &
           SERVER_PID=$!
