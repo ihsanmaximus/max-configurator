@@ -46,6 +46,7 @@
     try {
       const result=await api(API+"?id="+encodeURIComponent(id));
       window.MaximusConfigurator.setConfig(result.config);
+      window.dispatchEvent(new Event("maximus:project-changed"));
       await refresh(); renderManager();
       $("#pmStatus").textContent="Project aktif: "+result.config.project.name;
     } catch(e) { $("#pmStatus").textContent=e.message; }
