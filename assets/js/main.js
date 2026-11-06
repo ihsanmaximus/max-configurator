@@ -293,7 +293,10 @@ window.MaximusConfigurator = {
     config = mergeDefaults(next, DEFAULT_CONFIG);
     $("#projectName").textContent = config.project.name;
     $("[data-bind]").forEach(element => { let value = config; element.dataset.bind.split(".").forEach(key => value = value?.[key]); element.value = value ?? ""; });
-    $("#logoPreview").textContent = (config.logoText || "M").slice(0,2).toUpperCase();
+    const selectedLogo = config.logoDataUrl || mediaUrl("logo");
+    $("#logoPreview").innerHTML = selectedLogo
+      ? '<img alt="Logo preview" src="' + esc(selectedLogo) + '" style="max-width:100%;max-height:100%;object-fit:contain">'
+      : esc((config.logoText || "M").slice(0,2).toUpperCase());
     renderEditor(); renderPreview(); dirtyState = false;
   },
   setProjectName: name => { config.project.name = name; $("#projectName").textContent = name; },
