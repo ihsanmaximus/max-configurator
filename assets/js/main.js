@@ -37,6 +37,8 @@ let config = clone(DEFAULT_CONFIG);
 let activeSection = "hero";
 let activePanel = "content";
 let dirtyState = false;
+let changeVersion = 0;
+let saveInFlight = false;
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -63,6 +65,7 @@ function loadConfig() {
   } catch (error) { console.warn("Draft Configurator tidak dapat dibaca:", error); }
 }
 function markDirty() {
+  changeVersion += 1;
   dirtyState = true;
   const state = $("#saveState");
   if (state) { state.textContent = "● Belum disimpan"; state.style.color = "#b16a35"; }
@@ -203,18 +206,44 @@ function renderPreview() {
   $("#sitePreview").srcdoc = page;
 }
 async function saveDraft() {
+  if (saveInFlight) return;
+  saveInFlight = true;
+  const button = $("#saveButton");
+  const startedAtVersion = changeVersion;
   try {
     config.project.updatedAt = new Date().toISOString();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    const response = await fetch("backend/api/projects.php?id=" + encodeURIComponent(config.project.id), { method: "PUT", headers: { "Content-Type": "application/json", "X-CSRF-Token": window.MaximusAuth?.getToken?.() || "" }, body: JSON.stringify(config) });
-    if (!response.ok) throw new Error("API PHP tidak tersedia atau project belum terdaftar.");
-    dirtyState = false;
-    $("#saveState").textContent = "● Tersimpan di server";
-    $("#saveState").style.color = "#66816e";
-    showToast("Konfigurasi tersimpan melalui PHP.");
+    const snapshot = clone(config);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    if (button) button.disabled = true;
+    $("#saveState").textContent = "● Menyimpan...";
+    $("#saveState").style.color = "#9a783b";
+    const response = await fetch("backend/api/projects.php?id=" + encodeURIComponent(snapshot.project.id), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": window.MaximusAuth?.getToken?.() || "" },
+      body: JSON.stringify(snapshot)
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.ok === false) throw new Error(result.error || "API PHP tidak tersedia atau project belum terdaftar.");
+    if (changeVersion === startedAtVersion) {
+      dirtyState = false;
+      $("#saveState").textContent = "● Tersimpan di server";
+      $("#saveState").style.color = "#66816e";
+      showToast("Konfigurasi tersimpan melalui PHP.");
+    } else {
+      dirtyState = true;
+      $("#saveState").textContent = "● Ada perubahan baru";
+      $("#saveState").style.color = "#b16a35";
+      showToast("Snapshot tersimpan. Perubahan terbaru masih perlu disimpan.");
+    }
   } catch (error) {
+    dirtyState = true;
+    $("#saveState").textContent = "● Gagal disimpan";
+    $("#saveState").style.color = "#b13f35";
     showToast("Penyimpanan server gagal. Draft lokal tetap tersedia.");
-    console.error(error);
+    console.error("Gagal menyimpan konfigurasi:", error);
+  } finally {
+    saveInFlight = false;
+    if (button) button.disabled = false;
   }
 }
 function openPreview() {
