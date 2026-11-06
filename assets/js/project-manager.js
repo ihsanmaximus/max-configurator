@@ -33,18 +33,19 @@
   function escapeHtml(v) { return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   async function refresh() { const result=await api(API); projects=result.projects||[]; }
   async function createProject() {
+    if (window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Perubahan project aktif belum disimpan. Buang perubahan tersebut dan buat project baru?")) return;
     const name=$("#pmNewName").value.trim();
     if(!name) { $("#pmStatus").textContent="Masukkan nama project."; return; }
     try {
       const base=window.MaximusConfigurator.getDefaultConfig();
       base.project={id:"",name,package:"paket-2"};
       const result=await api(API,{method:"POST",body:JSON.stringify({name,config:base})});
-      await refresh(); await openProject(result.project.id); $("#pmNewName").value=""; renderManager();
+      await refresh(); await openProject(result.project.id, true); $("#pmNewName").value=""; renderManager();
     } catch(e) { $("#pmStatus").textContent=e.message; }
   }
-  async function openProject(id) {
+  async function openProject(id, force=false) {
     try {
-      if (window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Ada perubahan yang belum disimpan. Buang perubahan dan buka project lain?")) return;
+      if (!force && window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Ada perubahan yang belum disimpan. Buang perubahan dan buka project lain?")) return;
       const result=await api(API+"?id="+encodeURIComponent(id));
       window.MaximusConfigurator.setConfig(result.config);
       window.dispatchEvent(new Event("maximus:project-changed"));
@@ -66,12 +67,13 @@
   }
   async function deleteProject(id) {
     const p=projects.find(x=>x.id===id); if(!p) return;
+    if(window.MaximusConfigurator.getConfig().project.id===id && window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Project aktif memiliki perubahan yang belum disimpan. Hapus project beserta perubahan tersebut?")) return;
     if(!confirm('Hapus project "'+p.name+'" beserta konfigurasi dan medianya?')) return;
     try {
       await api(API+"?id="+encodeURIComponent(id),{method:"DELETE"});
       await refresh();
       if(window.MaximusConfigurator.getConfig().project.id===id) {
-        if(projects.length) await openProject(projects[0].id);
+        if(projects.length) await openProject(projects[0].id, true);
         else await createProjectFromDefault();
       }
       renderManager();
