@@ -291,6 +291,7 @@ function initialize() {
 }
 window.MaximusConfigurator = {
   getConfig: () => clone(config),
+  hasUnsavedChanges: () => dirtyState,
   setConfig: next => {
     config = mergeDefaults(next, DEFAULT_CONFIG);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch (error) { console.warn("Draft lokal tidak dapat diperbarui:", error); }
