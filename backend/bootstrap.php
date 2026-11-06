@@ -121,7 +121,11 @@ function write_project(string $id, array $data): void {
         if (!is_dir($backupDir) && !mkdir($backupDir, 0750, true) && !is_dir($backupDir)) {
             json_response(['ok' => false, 'error' => 'Folder backup gagal dibuat; konfigurasi lama dipertahankan.'], 500);
         }
-        $backupName = gmdate('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.json';
+        // Include microseconds so backups created within the same second remain chronologically sortable.
+        $backupTime = microtime(true);
+        $backupSeconds = (int) $backupTime;
+        $backupMicros = (int) (($backupTime - $backupSeconds) * 1000000);
+        $backupName = gmdate('Ymd_His', $backupSeconds) . '_' . sprintf('%06d', $backupMicros) . '_' . bin2hex(random_bytes(4)) . '.json';
         if (!copy($target, $backupDir . '/' . $backupName)) {
             json_response(['ok' => false, 'error' => 'Backup konfigurasi gagal; penyimpanan dibatalkan.'], 500);
         }
