@@ -26,7 +26,7 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 - Perubahan konten dan penempatan media ditandai sebagai belum disimpan. Perpindahan project meminta konfirmasi sebelum membuang perubahan.
 - Menghapus media melalui API membuat salinan pemulihan (maksimal 30 file per project), lalu melepas referensi slot dalam JSON sebelum file aktif dihapus. Media dapat dipulihkan melalui API; setelah pemulihan, pilih kembali file pada slot yang diinginkan. Aksi media dikunci pada ID project saat permintaan dimulai untuk menghindari silang project.
 - Setiap penyimpanan konfigurasi yang menggantikan file lama membuat rolling backup maksimal 10 versi di direktori `backups` milik project. API menyediakan daftar backup dan restore; restore juga menyimpan versi aktif sebagai backup baru.
-- Fitur masih tahap prototipe dan belum diuji end-to-end pada server PHP/browser produksi.
+- CI menjalankan backend API smoke test dan browser end-to-end smoke test menggunakan Chromium: login admin, pembuatan project, edit konfigurasi, simpan ke PHP, reload dan verifikasi persistensi, pemeriksaan responsive pada lebar 1440/1024/900/768/390/360 px, serta pemeriksaan JavaScript error. Pengujian CI memakai PHP built-in server dan tidak menggantikan uji hosting produksi.
 
 **Catatan Vercel:** PHP bukan runtime resmi first-party yang dapat diasumsikan tersedia untuk deployment biasa. Runtime PHP yang pernah tersedia di ekosistem Vercel bersifat komunitas, dan filesystem function tidak cocok untuk penyimpanan JSON permanen. Vercel dapat dipakai untuk menguji tampilan atau endpoint stateless, tetapi penyimpanan project/media persisten harus memakai layanan storage eksternal atau hosting PHP dengan disk persisten.
 
@@ -38,7 +38,7 @@ Semua endpoint project dan media memerlukan sesi admin. Operasi POST/PUT/DELETE 
 3. Pastikan HTTPS aktif. Cookie sesi menggunakan HttpOnly dan SameSite=Strict. Atribut Secure aktif saat PHP mendeteksi HTTPS. Jika TLS berhenti di reverse proxy dan PHP tidak melihat HTTPS, atur `MAXIMUS_FORCE_SECURE_COOKIE=1` hanya pada konfigurasi server tepercaya; backend tidak mempercayai header `X-Forwarded-Proto` dari request.
 4. Login dibatasi secara global per alamat IP: maksimal 10 kegagalan dalam jendela 15 menit, lalu jeda 15 menit. Pastikan `backend/storage` persisten dan hanya dapat ditulis oleh PHP.
 5. Buka Configurator dan login menggunakan password asli (bukan hash). Gunakan tombol Keluar untuk mengakhiri sesi.
-5. Jika environment variable belum diatur, API login menolak akses dengan status konfigurasi 503 (fail-closed).
+6. Jika environment variable belum diatur, API login menolak akses dengan status konfigurasi 503 (fail-closed).
 
 Autentikasi ini adalah gerbang admin satu akun untuk workspace internal, bukan sistem multi-user. Sebelum publikasi tetap perlu meninjau konfigurasi hosting, backup, rate limit tambahan di server/WAF, izin file, dan pengujian keamanan.
 
@@ -91,6 +91,15 @@ Folder penyimpanan dibuat otomatis di `backend/storage/projects/`. Jangan letakk
 
 ## Keamanan dan batasan sebelum produksi
 Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet sampai autentikasi admin dikonfigurasi dan diuji. Sesi admin, pemeriksaan CSRF, serta rate limiting persisten per alamat IP (10 kegagalan per 15 menit, lalu lock 15 menit) sudah diterapkan. Validasi ukuran/kompleksitas JSON, validasi referensi media, penulisan atomik, pemeriksaan konten/dimensi gambar, rolling backup konfigurasi (maksimal 10 versi), dan API restore juga sudah diterapkan. Sebelum produksi tetap wajib meninjau rate limiting tambahan pada server/WAF, backup off-site terjadwal, pemulihan file media, audit log, permission storage, serta pengujian keamanan dan alur end-to-end. Rolling backup konfigurasi JSON maksimal 10 versi dan backup media maksimal 30 file per project. Keduanya tetap bukan pengganti backup off-site terjadwal. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
+
+
+## Hasil validasi otomatis
+Workflow GitHub Actions `.github/workflows/preflight.yml` menjalankan:
+- Pemeriksaan sintaks seluruh file PHP dan JavaScript.
+- Backend API smoke test: autentikasi, CSRF, CRUD project, isolasi referensi media antarproject, upload/delete/restore media, backup/restore konfigurasi, dan logout.
+- Browser E2E dengan Chromium: login, membuat project melalui UI, mengubah field Hero, menyimpan melalui API, reload dan memastikan nilai tetap tersimpan, serta memeriksa overflow horizontal pada viewport desktop, tablet, dan ponsel.
+
+Status CI terbaru dapat dilihat pada tab Actions repository. Sebelum dipakai untuk klien, tetap lakukan satu kali deployment rehearsal pada hosting PHP target: pastikan versi PHP/ekstensi, HTTPS, environment hash, izin tulis dan persistensi storage, aturan blokir storage untuk web server (Apache/Nginx), serta backup off-site dan prosedur restore.
 
 ## Checklist pengujian end-to-end
 1. Buat project A dan project B; pastikan project B dimulai dari konten default.
