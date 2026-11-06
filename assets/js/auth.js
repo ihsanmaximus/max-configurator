@@ -38,7 +38,8 @@
     button.disabled=true;button.textContent="Memeriksa...";
     try{
       const data=await request("POST",{password:document.querySelector("#maximusPassword").value});
-      unlock(data.csrfToken);
+      csrfToken=data.csrfToken||"";
+      location.reload();
     }catch(error){message(error.message);}
     finally{button.disabled=false;button.textContent="Masuk ke Configurator";}
   });
