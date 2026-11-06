@@ -51,6 +51,21 @@ expect_code 201 -b "$COOKIE_JAR" -X POST \
 MEDIA_FILE="$(json | jq -r '.file // empty')"
 [[ -n "$MEDIA_FILE" ]] || fail "Media upload did not return filename"
 
+# A media reference must never cross project boundaries.
+expect_code 201 -b "$COOKIE_JAR" -X POST \
+  -H 'Content-Type: application/json' -H "X-CSRF-Token: $TOKEN" \
+  -d '{"name":"Isolation Test","config":{"project":{"name":"Isolation Test"},"media":{"logo":null,"hero":null,"about":null,"expertise":null}}}' \
+  "$BASE_URL/backend/api/projects.php"
+ISOLATION_PROJECT_ID="$(json | jq -r '.project.id // empty')"
+[[ -n "$ISOLATION_PROJECT_ID" ]] || fail "Isolation project creation did not return ID"
+CROSS_PROJECT_CONFIG="$(jq -n --arg id "$ISOLATION_PROJECT_ID" --arg file "$MEDIA_FILE" '{project:{id:$id,name:"Isolation Test",package:"paket-2"},media:{logo:null,hero:{file:$file},about:null,expertise:null},sections:{}}')"
+expect_code 422 -b "$COOKIE_JAR" -X PUT \
+  -H 'Content-Type: application/json' -H "X-CSRF-Token: $TOKEN" \
+  --data "$CROSS_PROJECT_CONFIG" "$BASE_URL/backend/api/projects.php?id=$ISOLATION_PROJECT_ID"
+expect_code 200 -b "$COOKIE_JAR" "$BASE_URL/backend/api/projects.php?id=$ISOLATION_PROJECT_ID"
+jq -e '.config.project.name == "Isolation Test" and .config.media.hero == null' /tmp/maximus-smoke-response >/dev/null \
+  || fail "Cross-project media reference changed the isolation project"
+
 # Bind the uploaded asset, then delete it and verify references are cleared.
 CONFIG="$(jq -n --arg id "$PROJECT_ID" --arg file "$MEDIA_FILE" '{project:{id:$id,name:"Smoke Test",package:"paket-2"},media:{logo:null,hero:{file:$file},about:null,expertise:null},sections:{}}')"
 expect_code 200 -b "$COOKIE_JAR" -X PUT \
@@ -90,7 +105,10 @@ jq -e --arg file "$MEDIA_FILE" '.config.media.hero.file == $file' /tmp/maximus-s
 expect_code 200 -b "$COOKIE_JAR" -X DELETE -H "X-CSRF-Token: $TOKEN" \
   "$BASE_URL/backend/api/projects.php?id=$PROJECT_ID"
 expect_code 200 -b "$COOKIE_JAR" -X DELETE -H "X-CSRF-Token: $TOKEN" \
+  "$BASE_URL/backend/api/projects.php?id=$ISOLATION_PROJECT_ID"
+expect_code 200 -b "$COOKIE_JAR" -X DELETE -H "X-CSRF-Token: $TOKEN" \
   "$BASE_URL/backend/api/auth.php"
 expect_code 401 -b "$COOKIE_JAR" "$BASE_URL/backend/api/projects.php"
+expect_code 401 -b "$COOKIE_JAR" "$BASE_URL/backend/api/media.php?project_id=$PROJECT_ID&file=$MEDIA_FILE"
 
-echo "PASS: auth, CSRF, project CRUD, media upload/delete/restore, config backup/restore, logout."
+echo "PASS: auth, CSRF, project CRUD/isolation, media upload/delete/restore, config backup/restore, logout."
