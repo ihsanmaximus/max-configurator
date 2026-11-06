@@ -15,29 +15,33 @@
   const grid=$("#mediaGrid");
   if(!grid)return;
   let urls=[];
+  let loadSequence=0;
   function revoke(){urls.forEach(URL.revokeObjectURL);urls=[];}
   async function load(){
+    const requestSequence=++loadSequence;
     revoke();
     const projectId=activeId();
     if(!projectId){grid.innerHTML='<p class="media-empty">Pilih project terlebih dahulu.</p>';return;}
     try{
       const data=await request(API+"?project_id="+encodeURIComponent(projectId));
       // A slower response from the previous project must never replace the active project's media view.
-      if(projectId!==activeId())return;
+      if(requestSequence!==loadSequence || projectId!==activeId())return;
       if(!data.media.length){grid.innerHTML='<p class="media-empty">Belum ada gambar di project ini.</p>';return;}
       grid.innerHTML=data.media.map(item=>'<article class="media-card"><div class="media-thumb" data-thumb="'+esc(item.file)+'">Memuat…</div><div class="media-meta"><small>'+esc(item.file)+'</small><small>'+Math.round(item.bytes/1024)+' KB</small><div class="media-actions"><button type="button" data-use="'+esc(item.file)+'">Pilih</button><button type="button" class="danger" data-remove="'+esc(item.file)+'">Hapus</button></div></div></article>').join("");
       for(const item of data.media){
-        if(projectId!==activeId())return;
+        if(requestSequence!==loadSequence || projectId!==activeId())return;
         const response=await fetch(API+"?project_id="+encodeURIComponent(projectId)+"&file="+encodeURIComponent(item.file));
         if(!response.ok)continue;
-        const url=URL.createObjectURL(await response.blob());urls.push(url);
+        const blob=await response.blob();
+        if(requestSequence!==loadSequence || projectId!==activeId())return;
+        const url=URL.createObjectURL(blob);urls.push(url);
         const thumb=grid.querySelector('[data-thumb="'+CSS.escape(item.file)+'"]');
         if(thumb)thumb.innerHTML='<img src="'+url+'" alt="'+esc(item.file)+'">';
       }
-      if(projectId!==activeId())return;
+      if(requestSequence!==loadSequence || projectId!==activeId())return;
       grid.querySelectorAll("[data-use]").forEach(button=>button.addEventListener("click",()=>useMedia(button.dataset.use)));
       grid.querySelectorAll("[data-remove]").forEach(button=>button.addEventListener("click",()=>removeMedia(button.dataset.remove)));
-    }catch(e){if(projectId===activeId())grid.innerHTML='<p class="media-empty">'+esc(e.message)+'</p>';}
+    }catch(e){if(requestSequence===loadSequence && projectId===activeId())grid.innerHTML='<p class="media-empty">'+esc(e.message)+'</p>';}
   }
   function useMedia(file){
     const target=$("#mediaTarget")?.value||"hero";
