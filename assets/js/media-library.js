@@ -16,18 +16,20 @@
   function revoke(){urls.forEach(URL.revokeObjectURL);urls=[];}
   async function load(){
     revoke();
-    if(!activeId()){grid.innerHTML='<p class="media-empty">Pilih project terlebih dahulu.</p>';return;}
+    const projectId=activeId();
+    if(!projectId){grid.innerHTML='<p class="media-empty">Pilih project terlebih dahulu.</p>';return;}
     try{
-      const data=await request(endpoint());
+      const data=await request(API+"?project_id="+encodeURIComponent(projectId));
       if(!data.media.length){grid.innerHTML='<p class="media-empty">Belum ada gambar di project ini.</p>';return;}
       grid.innerHTML=data.media.map(item=>'<article class="media-card"><div class="media-thumb" data-thumb="'+esc(item.file)+'">Memuat…</div><div class="media-meta"><small>'+esc(item.file)+'</small><small>'+Math.round(item.bytes/1024)+' KB</small><div class="media-actions"><button type="button" data-use="'+esc(item.file)+'">Pilih</button><button type="button" class="danger" data-remove="'+esc(item.file)+'">Hapus</button></div></div></article>').join("");
       for(const item of data.media){
-        const response=await fetch(API+"?project_id="+encodeURIComponent(activeId())+"&file="+encodeURIComponent(item.file));
+        const response=await fetch(API+"?project_id="+encodeURIComponent(projectId)+"&file="+encodeURIComponent(item.file));
         if(!response.ok)continue;
         const url=URL.createObjectURL(await response.blob());urls.push(url);
         const thumb=grid.querySelector('[data-thumb="'+CSS.escape(item.file)+'"]');
         if(thumb)thumb.innerHTML='<img src="'+url+'" alt="'+esc(item.file)+'">';
       }
+      if(projectId!==activeId())return;
       grid.querySelectorAll("[data-use]").forEach(button=>button.addEventListener("click",()=>useMedia(button.dataset.use)));
       grid.querySelectorAll("[data-remove]").forEach(button=>button.addEventListener("click",()=>removeMedia(button.dataset.remove)));
     }catch(e){grid.innerHTML='<p class="media-empty">'+esc(e.message)+'</p>';}
@@ -52,7 +54,17 @@
   }
   async function removeMedia(file){
     if(!confirm("Hapus file "+file+" dari project ini?"))return;
-    try{await request(endpoint()+"&file="+encodeURIComponent(file),{method:"DELETE"});await load();window.MaximusConfigurator.toast("Media dihapus.");}
+    try{
+      await request(endpoint()+"&file="+encodeURIComponent(file),{method:"DELETE"});
+      const cfg=window.MaximusConfigurator.getConfig();
+      let changed=false;
+      Object.keys(cfg.media||{}).forEach(slot=>{
+        if(cfg.media[slot]?.file===file){cfg.media[slot]=null;changed=true;}
+      });
+      if(changed)window.MaximusConfigurator.setConfig(cfg);
+      await load();
+      window.MaximusConfigurator.toast(changed?"Media dihapus dan seluruh penempatannya dilepas.":"Media dihapus.");
+    }
     catch(e){window.MaximusConfigurator.toast(e.message);}
   }
   $("#uploadMedia").addEventListener("click",upload);
