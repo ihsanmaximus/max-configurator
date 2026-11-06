@@ -275,7 +275,4 @@ function initialize() {
   renderPreview();
   $("#saveState").textContent = "● " + (localStorage.getItem(STORAGE_KEY) ? "Draft dimuat" : "Draft demo");
 }
-bindStaticControls();
-loadConfig();
-renderEditor();
-renderPreview();
+initialize();
