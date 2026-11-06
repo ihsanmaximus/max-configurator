@@ -191,16 +191,18 @@ function renderPreview() {
     '<footer class="footer"><span><b>' + esc(config.brand) + '</b><br>' + esc(s.footer.description) + '<div class="contact">' + contactLinks() + '</div></span><span>' + esc(s.footer.copyright) + '</span></footer></body></html>';
   $("#sitePreview").srcdoc = page;
 }
-function saveDraft() {
+async function saveDraft() {
   try {
     config.project.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    const response = await fetch("backend/api/projects.php?id=" + encodeURIComponent(config.project.id), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(config) });
+    if (!response.ok) throw new Error("API PHP tidak tersedia atau project belum terdaftar.");
     dirtyState = false;
-    $("#saveState").textContent = "● Tersimpan di perangkat";
+    $("#saveState").textContent = "● Tersimpan di server";
     $("#saveState").style.color = "#66816e";
-    showToast("Draft tersimpan di perangkat ini.");
+    showToast("Konfigurasi tersimpan melalui PHP.");
   } catch (error) {
-    showToast("Penyimpanan gagal. Periksa kapasitas browser.");
+    showToast("Penyimpanan server gagal. Draft lokal tetap tersedia.");
     console.error(error);
   }
 }
@@ -275,4 +277,16 @@ function initialize() {
   renderPreview();
   $("#saveState").textContent = "● " + (localStorage.getItem(STORAGE_KEY) ? "Draft dimuat" : "Draft demo");
 }
+window.MaximusConfigurator = {
+  getConfig: () => clone(config),
+  setConfig: next => {
+    config = mergeDefaults(next, DEFAULT_CONFIG);
+    $("#projectName").textContent = config.project.name;
+    $("[data-bind]").forEach(element => { let value = config; element.dataset.bind.split(".").forEach(key => value = value?.[key]); element.value = value ?? ""; });
+    $("#logoPreview").textContent = (config.logoText || "M").slice(0,2).toUpperCase();
+    renderEditor(); renderPreview(); dirtyState = false;
+  },
+  setProjectName: name => { config.project.name = name; $("#projectName").textContent = name; },
+  toast: showToast
+};
 initialize();
