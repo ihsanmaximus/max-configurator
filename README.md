@@ -24,7 +24,8 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 - Project baru dibuat dari konfigurasi default yang bersih, bukan menyalin konten project aktif.
 - Saat project dibuka, konfigurasi server menjadi sumber data utama; seluruh field identitas/kontak diperbarui.
 - Perubahan konten dan penempatan media ditandai sebagai belum disimpan. Perpindahan project meminta konfirmasi sebelum membuang perubahan.
-- Menghapus media juga melepas semua referensi slot media yang memakai file tersebut. Aksi media dikunci pada ID project saat permintaan dimulai untuk menghindari silang project.
+- Menghapus media melalui API melepas referensi slot dalam JSON sebelum file dihapus. Aksi media dikunci pada ID project saat permintaan dimulai untuk menghindari silang project.
+- Setiap penyimpanan konfigurasi yang menggantikan file lama membuat rolling backup maksimal 10 versi di direktori `backups` milik project. API menyediakan daftar backup dan restore; restore juga menyimpan versi aktif sebagai backup baru.
 - Fitur masih tahap prototipe dan belum diuji end-to-end pada server PHP/browser produksi.
 
 **Catatan Vercel:** PHP bukan runtime resmi first-party yang dapat diasumsikan tersedia untuk deployment biasa. Runtime PHP yang pernah tersedia di ekosistem Vercel bersifat komunitas, dan filesystem function tidak cocok untuk penyimpanan JSON permanen. Vercel dapat dipakai untuk menguji tampilan atau endpoint stateless, tetapi penyimpanan project/media persisten harus memakai layanan storage eksternal atau hosting PHP dengan disk persisten.
@@ -34,8 +35,9 @@ Semua endpoint project dan media memerlukan sesi admin. Operasi POST/PUT/DELETE 
 
 1. Buat hash password kuat (disarankan password unik minimal 16 karakter) menggunakan fungsi password_hash() dari PHP CLI pada server.
 2. Atur hasil hash sebagai environment variable PHP bernama MAXIMUS_ADMIN_PASSWORD_HASH pada hosting/PHP-FPM. Jangan menaruh password atau hash di file JavaScript, HTML, atau Git.
-3. Pastikan HTTPS aktif. Cookie sesi menggunakan HttpOnly dan SameSite=Strict; atribut Secure aktif saat PHP mendeteksi HTTPS.
-4. Buka Configurator dan login menggunakan password asli (bukan hash). Gunakan tombol Keluar untuk mengakhiri sesi.
+3. Pastikan HTTPS aktif. Cookie sesi menggunakan HttpOnly dan SameSite=Strict. Atribut Secure aktif saat PHP mendeteksi HTTPS. Jika TLS berhenti di reverse proxy dan PHP tidak melihat HTTPS, atur `MAXIMUS_FORCE_SECURE_COOKIE=1` hanya pada konfigurasi server tepercaya; backend tidak mempercayai header `X-Forwarded-Proto` dari request.
+4. Login dibatasi secara global per alamat IP: maksimal 10 kegagalan dalam jendela 15 menit, lalu jeda 15 menit. Pastikan `backend/storage` persisten dan hanya dapat ditulis oleh PHP.
+5. Buka Configurator dan login menggunakan password asli (bukan hash). Gunakan tombol Keluar untuk mengakhiri sesi.
 5. Jika environment variable belum diatur, API login menolak akses dengan status konfigurasi 503 (fail-closed).
 
 Autentikasi ini adalah gerbang admin satu akun untuk workspace internal, bukan sistem multi-user. Sebelum publikasi tetap perlu meninjau konfigurasi hosting, backup, rate limit tambahan di server/WAF, izin file, dan pengujian keamanan.
@@ -76,7 +78,9 @@ API awal:
 - `POST /backend/api/projects.php` — buat project.
 - `GET /backend/api/projects.php?id=<project-id>` — baca konfigurasi.
 - `PUT /backend/api/projects.php?id=<project-id>` — simpan konfigurasi.
-- `DELETE /backend/api/projects.php?id=<project-id>` — hapus project.
+- `DELETE /backend/api/projects.php?id=<project-id>` — hapus project (permanen; ekspor/backup project sebelum menghapus).
+- `GET /backend/api/projects.php?id=<project-id>&action=backups` — daftar backup konfigurasi.
+- `POST /backend/api/projects.php?id=<project-id>&action=restore` dengan JSON `{ "file": "nama-backup.json" }` — pulihkan konfigurasi dari backup (memerlukan CSRF).
 - `POST /backend/api/media.php?project_id=<project-id>` — upload media.
 - `GET /backend/api/media.php?project_id=<project-id>` — daftar media.
 - `DELETE /backend/api/media.php?project_id=<project-id>&file=<filename>` — hapus media.
