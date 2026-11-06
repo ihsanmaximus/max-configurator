@@ -293,6 +293,7 @@ window.MaximusConfigurator = {
   getConfig: () => clone(config),
   setConfig: next => {
     config = mergeDefaults(next, DEFAULT_CONFIG);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); } catch (error) { console.warn("Draft lokal tidak dapat diperbarui:", error); }
     $("#projectName").textContent = config.project.name;
     $("[data-bind]").forEach(element => { let value = config; element.dataset.bind.split(".").forEach(key => value = value?.[key]); element.value = value ?? ""; });
     const selectedLogo = config.logoDataUrl || mediaUrl("logo");
