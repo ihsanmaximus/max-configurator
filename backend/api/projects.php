@@ -27,11 +27,11 @@ if ($method === 'GET' && $id === '') {
 if ($method === 'POST') {
     $data = request_json();
     $name = trim((string) ($data['name'] ?? ''));
-    $nameLength = preg_match_all('/./us', $name, $nameChars);
+    $nameLength = preg_match_all('/./us', $name);
     if ($name === '' || $nameLength === false || $nameLength > 100) json_response(['ok' => false, 'error' => 'Nama project wajib diisi (maksimal 100 karakter).'], 422);
-    $id = 'prj_' . bin2hex(random_bytes(8));
     $config = $data['config'] ?? [];
     if (!is_array($config)) json_response(['ok' => false, 'error' => 'Config harus berupa object JSON.'], 422);
+    $id = 'prj_' . bin2hex(random_bytes(8));
     $config['project'] = array_merge(is_array($config['project'] ?? null) ? $config['project'] : [], ['id' => $id, 'name' => $name, 'package' => 'paket-2']);
     write_project($id, $config);
     json_response(['ok' => true, 'project' => ['id' => $id, 'name' => $name]], 201);
@@ -42,15 +42,12 @@ $dir = project_dir($id);
 
 if ($method === 'GET') {
     $config = read_project($id);
-    if ($config === null) json_response(['ok' => false, 'error' => 'Project tidak ditemukan.'], 404);
+    if ($config === null) json_response(['ok' => false, 'error' => 'Project tidak ditemukan atau data rusak.'], 404);
     json_response(['ok' => true, 'config' => $config]);
 }
 if ($method === 'PUT') {
     if (!is_dir($dir)) json_response(['ok' => false, 'error' => 'Project tidak ditemukan.'], 404);
     $config = request_json();
-    if (!isset($config['project']) || !is_array($config['project'])) {
-        json_response(['ok' => false, 'error' => 'Struktur config project tidak valid.'], 422);
-    }
     write_project($id, $config);
     json_response(['ok' => true, 'updatedAt' => gmdate('c')]);
 }
