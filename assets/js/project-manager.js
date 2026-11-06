@@ -11,6 +11,7 @@
     return data;
   };
   let projects = [];
+  let projectOpenSequence = 0;
   const managerButton = $("#manageProjects");
   if (!managerButton) return;
 
@@ -46,9 +47,12 @@
     } catch(e) { $("#pmStatus").textContent=e.message; }
   }
   async function openProject(id, force=false) {
+    if (!force && window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Ada perubahan yang belum disimpan. Buang perubahan dan buka project lain?")) return;
+    const requestSequence = ++projectOpenSequence;
     try {
-      if (!force && window.MaximusConfigurator.hasUnsavedChanges?.() && !confirm("Ada perubahan yang belum disimpan. Buang perubahan dan buka project lain?")) return;
       const result=await api(API+"?id="+encodeURIComponent(id));
+      // Ignore late responses from earlier project selections.
+      if (requestSequence !== projectOpenSequence) return;
       window.MaximusConfigurator.setConfig(result.config);
       window.dispatchEvent(new Event("maximus:project-changed"));
       await refresh();
