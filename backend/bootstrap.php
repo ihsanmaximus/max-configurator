@@ -101,7 +101,7 @@ function validate_project_config(array $data, string $id): void {
     }
 }
 
-function write_project(string $id, array $data): void {
+function write_project_unlocked(string $id, array $data): void {
     validate_project_config($data, $id);
     $dir = project_dir($id);
     if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
@@ -144,6 +144,30 @@ function write_project(string $id, array $data): void {
     if ($written === false || !rename($temporary, $target)) {
         if (is_file($temporary)) unlink($temporary);
         json_response(['ok' => false, 'error' => 'Konfigurasi gagal disimpan.'], 500);
+    }
+}
+
+/**
+ * Serialize config writes per project so backup creation, retention, and atomic
+ * replacement cannot interleave across concurrent requests.
+ */
+function write_project(string $id, array $data): void {
+    $dir = project_dir($id);
+    if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
+        json_response(['ok' => false, 'error' => 'Folder project gagal dibuat.'], 500);
+    }
+    $lock = fopen($dir . '/.config.lock', 'c');
+    if ($lock === false) {
+        json_response(['ok' => false, 'error' => 'Kunci penyimpanan project gagal dibuka.'], 500);
+    }
+    try {
+        if (!flock($lock, LOCK_EX)) {
+            json_response(['ok' => false, 'error' => 'Project sedang dikunci; coba simpan kembali.'], 503);
+        }
+        write_project_unlocked($id, $data);
+    } finally {
+        flock($lock, LOCK_UN);
+        fclose($lock);
     }
 }
 
