@@ -32,7 +32,7 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 ## Autentikasi admin (wajib sebelum deployment)
 Semua endpoint project dan media memerlukan sesi admin. Operasi POST/PUT/DELETE juga memerlukan token CSRF. Password tidak disimpan di repository atau browser; backend memverifikasi hash dari environment PHP.
 
-1. Buat hash password kuat menggunakan fungsi password_hash() dari PHP CLI pada server.
+1. Buat hash password kuat (disarankan password unik minimal 16 karakter) menggunakan fungsi password_hash() dari PHP CLI pada server.
 2. Atur hasil hash sebagai environment variable PHP bernama MAXIMUS_ADMIN_PASSWORD_HASH pada hosting/PHP-FPM. Jangan menaruh password atau hash di file JavaScript, HTML, atau Git.
 3. Pastikan HTTPS aktif. Cookie sesi menggunakan HttpOnly dan SameSite=Strict; atribut Secure aktif saat PHP mendeteksi HTTPS.
 4. Buka Configurator dan login menggunakan password asli (bukan hash). Gunakan tombol Keluar untuk mengakhiri sesi.
@@ -48,6 +48,9 @@ php -S 127.0.0.1:8080 -t .
 ```
 
 API awal:
+- `GET /backend/api/auth.php` — status sesi admin dan token CSRF.
+- `POST /backend/api/auth.php` — login admin.
+- `DELETE /backend/api/auth.php` — logout admin.
 - `GET /backend/api/projects.php` — daftar project.
 - `POST /backend/api/projects.php` — buat project.
 - `GET /backend/api/projects.php?id=<project-id>` — baca konfigurasi.
