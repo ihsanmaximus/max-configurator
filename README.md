@@ -16,8 +16,12 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 - Website klien nantinya membaca konfigurasi melalui mini-backend PHP mandiri.
 - Tidak menggunakan Supabase sebagai database runtime website klien.
 
-## Status penyimpanan
-Saat ini UI yang sudah ada masih menyimpan draft di browser (localStorage). Fondasi PHP di folder `backend` disiapkan sebagai tahap berikutnya; integrasi frontend ke API belum diaktifkan.
+## Status penyimpanan dan media
+- Project Manager terhubung ke API PHP untuk membuat, membuka, mengganti nama, dan menghapus project.
+- Konfigurasi disimpan sebagai JSON melalui API; localStorage menjadi draft/fallback browser.
+- Media Library terhubung ke API upload/list/delete dengan folder per project.
+- Media dapat ditetapkan ke slot Logo, Hero, About, dan Keahlian. Referensi file disimpan dalam konfigurasi project; preview mengambil file melalui endpoint media.
+- Fitur masih tahap prototipe dan belum diuji end-to-end pada server PHP/browser produksi.
 
 **Catatan Vercel:** PHP bukan runtime resmi first-party yang dapat diasumsikan tersedia untuk deployment biasa. Runtime PHP yang pernah tersedia di ekosistem Vercel bersifat komunitas, dan filesystem function tidak cocok untuk penyimpanan JSON permanen. Vercel dapat dipakai untuk menguji tampilan atau endpoint stateless, tetapi penyimpanan project/media persisten harus memakai layanan storage eksternal atau hosting PHP dengan disk persisten.
 
