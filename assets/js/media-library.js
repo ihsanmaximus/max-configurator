@@ -64,7 +64,7 @@
       Object.keys(cfg.media||{}).forEach(slot=>{
         if(cfg.media[slot]?.file===file){cfg.media[slot]=null;changed=true;}
       });
-      if(changed)window.MaximusConfigurator.setConfig(cfg);
+      if(changed)window.MaximusConfigurator.updateConfig(cfg);
       await load();
       window.MaximusConfigurator.toast(changed?"Media dihapus dan seluruh penempatannya dilepas.":"Media dihapus.");
     }
