@@ -21,6 +21,10 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 - Konfigurasi disimpan sebagai JSON melalui API; localStorage menjadi draft/fallback browser.
 - Media Library terhubung ke API upload/list/delete dengan folder per project.
 - Media dapat ditetapkan ke slot Logo, Hero, About, dan Keahlian. Referensi file disimpan dalam konfigurasi project; preview mengambil file melalui endpoint media.
+- Project baru dibuat dari konfigurasi default yang bersih, bukan menyalin konten project aktif.
+- Saat project dibuka, konfigurasi server menjadi sumber data utama; seluruh field identitas/kontak diperbarui.
+- Perubahan konten dan penempatan media ditandai sebagai belum disimpan. Perpindahan project meminta konfirmasi sebelum membuang perubahan.
+- Menghapus media juga melepas semua referensi slot media yang memakai file tersebut. Aksi media dikunci pada ID project saat permintaan dimulai untuk menghindari silang project.
 - Fitur masih tahap prototipe dan belum diuji end-to-end pada server PHP/browser produksi.
 
 **Catatan Vercel:** PHP bukan runtime resmi first-party yang dapat diasumsikan tersedia untuk deployment biasa. Runtime PHP yang pernah tersedia di ekosistem Vercel bersifat komunitas, dan filesystem function tidak cocok untuk penyimpanan JSON permanen. Vercel dapat dipakai untuk menguji tampilan atau endpoint stateless, tetapi penyimpanan project/media persisten harus memakai layanan storage eksternal atau hosting PHP dengan disk persisten.
@@ -44,5 +48,15 @@ API awal:
 
 Folder penyimpanan dibuat otomatis di `backend/storage/projects/`. Jangan letakkan folder storage di lokasi publik pada hosting produksi.
 
-## Keamanan
-Backend ini adalah fondasi pengembangan, belum layak dibuka ke internet tanpa autentikasi admin, otorisasi per project, validasi deployment, pembatasan upload, dan backup. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
+## Keamanan dan batasan sebelum produksi
+Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet. Sebelum produksi wajib ditambahkan autentikasi admin, otorisasi per project, proteksi CSRF, rate limiting, batas request, validasi konfigurasi, backup, dan pengujian permission storage. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
+
+## Checklist pengujian end-to-end
+1. Buat project A dan project B; pastikan project B dimulai dari konten default.
+2. Ubah identitas, kontak, konten Hero/About/Keahlian/Artikel/FAQ/Footer pada A; simpan.
+3. Upload gambar, pasang ke setiap slot media, simpan; tutup dan buka kembali A.
+4. Pastikan seluruh field dan gambar kembali tepat.
+5. Ubah A tanpa menyimpan, lalu pindah project; pastikan dialog konfirmasi tampil.
+6. Pastikan B tidak mewarisi konten atau referensi media A.
+7. Hapus gambar yang sedang dipakai; pastikan referensi slot dilepas dan preview kembali ke placeholder.
+8. Uji seluruh operasi API pada hosting PHP dengan disk persisten; catat versi PHP dan ekstensi yang tersedia.
