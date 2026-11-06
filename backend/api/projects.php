@@ -39,6 +39,36 @@ if ($method === 'POST') {
 
 if ($id === '') json_response(['ok' => false, 'error' => 'Parameter id wajib diisi.'], 400);
 $dir = project_dir($id);
+$action = (string) ($_GET['action'] ?? '');
+
+if ($action === 'backups' && $method === 'GET') {
+    if (!is_dir($dir)) json_response(['ok' => false, 'error' => 'Project tidak ditemukan.'], 404);
+    $backupDir = $dir . '/backups';
+    $items = [];
+    foreach (glob($backupDir . '/*.json') ?: [] as $file) {
+        $items[] = ['file' => basename($file), 'createdAt' => gmdate('c', (int) filemtime($file)), 'bytes' => filesize($file)];
+    }
+    usort($items, static fn($a, $b) => strcmp($b['file'], $a['file']));
+    json_response(['ok' => true, 'backups' => $items]);
+}
+
+if ($action === 'restore' && $method === 'POST') {
+    if (!is_dir($dir)) json_response(['ok' => false, 'error' => 'Project tidak ditemukan.'], 404);
+    $data = request_json();
+    $backupName = (string) ($data['file'] ?? '');
+    if (!preg_match('/^[0-9]{8}_[0-9]{6}_[a-f0-9]{8}\\.json$/', $backupName)) {
+        json_response(['ok' => false, 'error' => 'Nama backup tidak valid.'], 400);
+    }
+    $backupPath = $dir . '/backups/' . $backupName;
+    if (!is_file($backupPath)) json_response(['ok' => false, 'error' => 'Backup tidak ditemukan.'], 404);
+    $rawBackup = file_get_contents($backupPath);
+    $backupConfig = $rawBackup === false ? null : json_decode($rawBackup, true, 32);
+    if (!is_array($backupConfig) || json_last_error() !== JSON_ERROR_NONE) {
+        json_response(['ok' => false, 'error' => 'Isi backup rusak atau tidak valid.'], 422);
+    }
+    write_project($id, $backupConfig);
+    json_response(['ok' => true, 'restored' => $backupName]);
+}
 
 if ($method === 'GET') {
     $config = read_project($id);
