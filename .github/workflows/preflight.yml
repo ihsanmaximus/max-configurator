@@ -36,9 +36,15 @@ jobs:
           find assets/js -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do
             node --check "$file"
           done
+      - name: Install browser test dependencies
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
       - name: Required files
         run: |
           test -f index.html
+          test -f package.json
+          test -f tests/browser-smoke.cjs
           test -f backend/bootstrap.php
           test -f backend/api/auth.php
           test -f backend/api/projects.php
@@ -48,8 +54,9 @@ jobs:
       - name: Backend API smoke test
         run: |
           set -euo pipefail
-          PASSWORD_HASH="$(php -r 'echo password_hash("maximus-smoke-password", PASSWORD_DEFAULT);')"
-          MAXIMUS_ADMIN_PASSWORD_HASH="$PASSWORD_HASH" php -S 127.0.0.1:8080 -t . > /tmp/maximus-php-server.log 2>&1 &
+          export MAXIMUS_TEST_PASSWORD="maximus-browser-smoke"
+          export MAXIMUS_ADMIN_PASSWORD_HASH="$(php -r 'echo password_hash(getenv("MAXIMUS_TEST_PASSWORD"), PASSWORD_DEFAULT);')"
+          php -S 127.0.0.1:8080 -t . > /tmp/maximus-php-server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 30); do
@@ -59,3 +66,4 @@ jobs:
             sleep 1
           done
           bash tests/backend-smoke.sh
+          node tests/browser-smoke.cjs
