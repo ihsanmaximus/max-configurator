@@ -24,7 +24,7 @@ Configurator Paket 2: **Fixed Structure + Dynamic Content**.
 - Project baru dibuat dari konfigurasi default yang bersih, bukan menyalin konten project aktif.
 - Saat project dibuka, konfigurasi server menjadi sumber data utama; seluruh field identitas/kontak diperbarui.
 - Perubahan konten dan penempatan media ditandai sebagai belum disimpan. Perpindahan project meminta konfirmasi sebelum membuang perubahan.
-- Menghapus media melalui API melepas referensi slot dalam JSON sebelum file dihapus. Aksi media dikunci pada ID project saat permintaan dimulai untuk menghindari silang project.
+- Menghapus media melalui API membuat salinan pemulihan (maksimal 30 file per project), lalu melepas referensi slot dalam JSON sebelum file aktif dihapus. Media dapat dipulihkan melalui API; setelah pemulihan, pilih kembali file pada slot yang diinginkan. Aksi media dikunci pada ID project saat permintaan dimulai untuk menghindari silang project.
 - Setiap penyimpanan konfigurasi yang menggantikan file lama membuat rolling backup maksimal 10 versi di direktori `backups` milik project. API menyediakan daftar backup dan restore; restore juga menyimpan versi aktif sebagai backup baru.
 - Fitur masih tahap prototipe dan belum diuji end-to-end pada server PHP/browser produksi.
 
@@ -83,12 +83,14 @@ API awal:
 - `POST /backend/api/projects.php?id=<project-id>&action=restore` dengan JSON `{ "file": "nama-backup.json" }` — pulihkan konfigurasi dari backup (memerlukan CSRF).
 - `POST /backend/api/media.php?project_id=<project-id>` — upload media.
 - `GET /backend/api/media.php?project_id=<project-id>` — daftar media.
-- `DELETE /backend/api/media.php?project_id=<project-id>&file=<filename>` — hapus media.
+- `DELETE /backend/api/media.php?project_id=<project-id>&file=<filename>` — arsipkan lalu hapus media aktif.
+- `GET /backend/api/media.php?project_id=<project-id>&action=backups` — daftar backup media.
+- `POST /backend/api/media.php?project_id=<project-id>&action=restore&file=<filename>` — pulihkan media dari backup (memerlukan CSRF).
 
 Folder penyimpanan dibuat otomatis di `backend/storage/projects/`. Jangan letakkan folder storage di lokasi publik pada hosting produksi.
 
 ## Keamanan dan batasan sebelum produksi
-Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet sampai autentikasi admin dikonfigurasi dan diuji. Sesi admin, pemeriksaan CSRF, serta rate limiting persisten per alamat IP (10 kegagalan per 15 menit, lalu lock 15 menit) sudah diterapkan. Validasi ukuran/kompleksitas JSON, validasi referensi media, penulisan atomik, pemeriksaan konten/dimensi gambar, rolling backup konfigurasi (maksimal 10 versi), dan API restore juga sudah diterapkan. Sebelum produksi tetap wajib meninjau rate limiting tambahan pada server/WAF, backup off-site terjadwal, pemulihan file media, audit log, permission storage, serta pengujian keamanan dan alur end-to-end. Rolling backup hanya mencakup konfigurasi JSON, bukan file media, dan bukan pengganti backup off-site. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
+Backend ini adalah fondasi pengembangan dan BELUM layak dibuka ke internet sampai autentikasi admin dikonfigurasi dan diuji. Sesi admin, pemeriksaan CSRF, serta rate limiting persisten per alamat IP (10 kegagalan per 15 menit, lalu lock 15 menit) sudah diterapkan. Validasi ukuran/kompleksitas JSON, validasi referensi media, penulisan atomik, pemeriksaan konten/dimensi gambar, rolling backup konfigurasi (maksimal 10 versi), dan API restore juga sudah diterapkan. Sebelum produksi tetap wajib meninjau rate limiting tambahan pada server/WAF, backup off-site terjadwal, pemulihan file media, audit log, permission storage, serta pengujian keamanan dan alur end-to-end. Rolling backup konfigurasi JSON maksimal 10 versi dan backup media maksimal 30 file per project. Keduanya tetap bukan pengganti backup off-site terjadwal. File .htaccess melindungi folder storage pada Apache; deployment Nginx atau server lain harus memiliki aturan deny yang setara. Jangan mengandalkan .htaccess pada PHP built-in server. Jangan gunakan data pribadi pasien asli untuk pengujian; gunakan data demonstrasi/non-sensitif Dr. Faisal.
 
 ## Checklist pengujian end-to-end
 1. Buat project A dan project B; pastikan project B dimulai dari konten default.
