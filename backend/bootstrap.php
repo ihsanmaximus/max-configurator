@@ -3,23 +3,34 @@ declare(strict_types=1);
 
 /**
  * Maximus Configurator API bootstrap.
- * Prototype storage adapter for conventional PHP hosting with persistent disk.
+ * Requires PHP 8.1+ and persistent writable storage.
  */
 const MAXIMUS_STORAGE_ROOT = __DIR__ . '/storage/projects';
+const MAXIMUS_MAX_JSON_BYTES = 1048576; // 1 MiB
 
 function json_response(array $payload, int $status = 200): never {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
+    header('X-Content-Type-Options: nosniff');
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }
 
 function request_json(): array {
-    $raw = file_get_contents('php://input');
+    $length = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if ($length > MAXIMUS_MAX_JSON_BYTES) {
+        json_response(['ok' => false, 'error' => 'Ukuran data melebihi batas 1 MB.'], 413);
+    }
+    $raw = file_get_contents('php://input', false, null, 0, MAXIMUS_MAX_JSON_BYTES + 1);
     if ($raw === false || trim($raw) === '') return [];
-    $data = json_decode($raw, true);
-    if (!is_array($data)) json_response(['ok' => false, 'error' => 'JSON tidak valid.'], 400);
+    if (strlen($raw) > MAXIMUS_MAX_JSON_BYTES) {
+        json_response(['ok' => false, 'error' => 'Ukuran data melebihi batas 1 MB.'], 413);
+    }
+    $data = json_decode($raw, true, 32);
+    if (!is_array($data) || json_last_error() !== JSON_ERROR_NONE) {
+        json_response(['ok' => false, 'error' => 'JSON tidak valid atau struktur terlalu dalam.'], 400);
+    }
     return $data;
 }
 
@@ -41,11 +52,57 @@ function project_dir(string $id): string {
 function read_project(string $id): ?array {
     $path = project_dir($id) . '/config.json';
     if (!is_file($path)) return null;
-    $data = json_decode((string) file_get_contents($path), true);
-    return is_array($data) ? $data : null;
+    $raw = file_get_contents($path);
+    if ($raw === false || strlen($raw) > MAXIMUS_MAX_JSON_BYTES) return null;
+    $data = json_decode($raw, true, 32);
+    return is_array($data) && json_last_error() === JSON_ERROR_NONE ? $data : null;
+}
+
+/** Bound JSON complexity and media references before persisting a project. */
+function validate_project_config(array $data, string $id): void {
+    $nodes = 0;
+    $walk = function ($value, int $depth = 0) use (&$walk, &$nodes): void {
+        $nodes++;
+        if ($nodes > 5000 || $depth > 16) {
+            json_response(['ok' => false, 'error' => 'Struktur konfigurasi terlalu kompleks.'], 422);
+        }
+        if (is_string($value) && strlen($value) > 20000) {
+            json_response(['ok' => false, 'error' => 'Ada teks konfigurasi yang melebihi 20 KB.'], 422);
+        }
+        if (is_array($value)) {
+            if (count($value) > 500) json_response(['ok' => false, 'error' => 'Terlalu banyak item dalam konfigurasi.'], 422);
+            foreach ($value as $child) $walk($child, $depth + 1);
+        } elseif (!is_null($value) && !is_string($value) && !is_int($value) && !is_float($value) && !is_bool($value)) {
+            json_response(['ok' => false, 'error' => 'Tipe data konfigurasi tidak didukung.'], 422);
+        }
+    };
+    $walk($data);
+
+    if (!isset($data['project']) || !is_array($data['project'])) {
+        json_response(['ok' => false, 'error' => 'Struktur config project tidak valid.'], 422);
+    }
+    $name = trim((string) ($data['project']['name'] ?? ''));
+    $nameLength = preg_match_all('/./us', $name);
+    if ($name === '' || $nameLength === false || $nameLength > 100) {
+        json_response(['ok' => false, 'error' => 'Nama project wajib diisi (maksimal 100 karakter).'], 422);
+    }
+
+    $media = $data['media'] ?? [];
+    if (!is_array($media)) json_response(['ok' => false, 'error' => 'Referensi media tidak valid.'], 422);
+    $mediaDir = project_dir($id) . '/media';
+    foreach (['logo', 'hero', 'about', 'expertise'] as $slot) {
+        $reference = $media[$slot] ?? null;
+        if ($reference === null) continue;
+        if (!is_array($reference) || !isset($reference['file']) ||
+            !preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/', (string) $reference['file']) ||
+            !is_file($mediaDir . '/' . $reference['file'])) {
+            json_response(['ok' => false, 'error' => 'Referensi media ' . $slot . ' tidak ditemukan pada project ini.'], 422);
+        }
+    }
 }
 
 function write_project(string $id, array $data): void {
+    validate_project_config($data, $id);
     $dir = project_dir($id);
     if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
         json_response(['ok' => false, 'error' => 'Folder project gagal dibuat.'], 500);
@@ -53,16 +110,26 @@ function write_project(string $id, array $data): void {
     $data['project']['id'] = $id;
     $data['project']['updatedAt'] = gmdate('c');
     $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if ($json === false || file_put_contents($dir . '/config.json', $json, LOCK_EX) === false) {
+    if ($json === false || strlen($json) > MAXIMUS_MAX_JSON_BYTES) {
+        json_response(['ok' => false, 'error' => 'Konfigurasi tidak dapat disimpan atau melebihi 1 MB.'], 413);
+    }
+
+    // Write to a temporary file in the same directory, then atomically replace config.json.
+    $target = $dir . '/config.json';
+    $temporary = tempnam($dir, '.config-');
+    if ($temporary === false) json_response(['ok' => false, 'error' => 'File sementara gagal dibuat.'], 500);
+    $written = file_put_contents($temporary, $json, LOCK_EX);
+    if ($written === false || !rename($temporary, $target)) {
+        if (is_file($temporary)) unlink($temporary);
         json_response(['ok' => false, 'error' => 'Konfigurasi gagal disimpan.'], 500);
     }
 }
-
 
 /** Session-based admin authentication. Configure MAXIMUS_ADMIN_PASSWORD_HASH in the PHP environment. */
 function start_admin_session(): void {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    if (!$https && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https') $https = true;
     session_name('MAXIMUS_ADMIN');
     session_set_cookie_params([
         'lifetime' => 0, 'path' => '/',
