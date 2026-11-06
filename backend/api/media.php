@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
+require_admin();
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if (in_array($method, ['POST', 'DELETE'], true)) require_csrf();
 ensure_storage();
 
 $projectId = (string) ($_GET['project_id'] ?? '');
@@ -11,7 +14,6 @@ if (!is_dir($mediaDir) && !mkdir($mediaDir, 0750, true) && !is_dir($mediaDir)) {
     json_response(['ok' => false, 'error' => 'Folder media gagal dibuat.'], 500);
 }
 
-$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 if ($method === 'GET') {
     $requested = (string) ($_GET['file'] ?? '');
