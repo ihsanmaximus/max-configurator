@@ -39,7 +39,15 @@ if ($method === 'POST') {
     $file = $_FILES['file'];
     if ($file['size'] > 5 * 1024 * 1024) json_response(['ok' => false, 'error' => 'Ukuran maksimal 5 MB.'], 413);
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    if (!isset($allowed[$mime])) json_response(['ok' => false, 'error' => 'Format hanya JPG, PNG, atau WebP.'], 415);
+    $imageInfo = @getimagesize($file['tmp_name']);
+    if (!isset($allowed[$mime]) || $imageInfo === false || ($imageInfo['mime'] ?? '') !== $mime) {
+        json_response(['ok' => false, 'error' => 'Isi file bukan gambar JPG, PNG, atau WebP yang valid.'], 415);
+    }
+    $width = (int) ($imageInfo[0] ?? 0);
+    $height = (int) ($imageInfo[1] ?? 0);
+    if ($width < 1 || $height < 1 || $width > 10000 || $height > 10000 || ($width * $height) > 40000000) {
+        json_response(['ok' => false, 'error' => 'Dimensi gambar terlalu besar. Maksimal 10.000 px per sisi dan 40 megapiksel.'], 422);
+    }
     $name = bin2hex(random_bytes(12)) . '.' . $allowed[$mime];
     if (!move_uploaded_file($file['tmp_name'], $mediaDir . '/' . $name)) json_response(['ok' => false, 'error' => 'File gagal disimpan.'], 500);
     json_response(['ok' => true, 'file' => $name, 'bytes' => (int) $file['size']], 201);
