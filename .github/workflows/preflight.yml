@@ -39,7 +39,7 @@ jobs:
       - name: Install browser test dependencies
         run: |
           npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Required files
         run: |
           test -f index.html
