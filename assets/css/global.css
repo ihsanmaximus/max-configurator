@@ -14,3 +14,18 @@
 
 /* Media target selector */
 .media-target-field{margin:0 0 16px;padding:12px;border:1px solid #e3e9e5;border-radius:10px;background:#f8fbf8}.media-target-field select{width:100%;border:1px solid #d9e1dc;border-radius:8px;background:#fff;padding:10px 12px;font:13px 'DM Sans';color:#1e2b23}
+
+
+/* Admin authentication gate */
+body.auth-locked .app-shell,body.auth-locked .toast{visibility:hidden}
+.auth-gate{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:22px;background:linear-gradient(135deg,#102e23,#1d5038)}
+.auth-card{width:min(100%,390px);padding:34px;border-radius:20px;background:#fff;box-shadow:0 24px 80px #071b1280;font-family:'DM Sans',sans-serif}
+.auth-mark{width:46px;height:46px;display:grid;place-items:center;border-radius:13px;background:#17452f;color:#fff;font:700 24px Georgia}
+.auth-eyebrow{margin:22px 0 7px;color:#72907b;font-size:10px;font-weight:700;letter-spacing:2px}
+.auth-card h1{margin:0;color:#183d2b;font:600 30px Georgia}
+.auth-copy{margin:10px 0 25px;color:#718077;font-size:13px;line-height:1.6}
+.auth-card label{display:block;margin-bottom:8px;color:#31463a;font-size:12px;font-weight:700}
+.auth-card input{width:100%;padding:13px 14px;border:1px solid #dce5de;border-radius:9px;font:14px 'DM Sans',sans-serif;outline-color:#39734f}
+.auth-card button{width:100%;margin-top:14px;padding:13px;border:0;border-radius:9px;background:#1d5637;color:#fff;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.auth-card button:disabled{opacity:.65;cursor:wait}
+#maximusAuthMessage{min-height:18px;margin:13px 0 0;color:#a3473f;font-size:11px;line-height:1.5}
