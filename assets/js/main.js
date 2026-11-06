@@ -211,6 +211,7 @@ async function saveDraft() {
   saveInFlight = true;
   const button = $("#saveButton");
   const startedAtVersion = changeVersion;
+  const startedProjectId = config.project.id;
   try {
     config.project.updatedAt = new Date().toISOString();
     const snapshot = clone(config);
@@ -225,22 +226,28 @@ async function saveDraft() {
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || result.ok === false) throw new Error(result.error || "API PHP tidak tersedia atau project belum terdaftar.");
-    if (changeVersion === startedAtVersion) {
-      dirtyState = false;
-      $("#saveState").textContent = "● Tersimpan di server";
-      $("#saveState").style.color = "#66816e";
-      showToast("Konfigurasi tersimpan melalui PHP.");
-    } else {
-      dirtyState = true;
-      $("#saveState").textContent = "● Ada perubahan baru";
-      $("#saveState").style.color = "#b16a35";
-      showToast("Snapshot tersimpan. Perubahan terbaru masih perlu disimpan.");
+    // A save response belongs only to the project/version that initiated it.
+    // Project switching while the request is pending must not alter the new editor state.
+    if (config.project.id === startedProjectId) {
+      if (changeVersion === startedAtVersion) {
+        dirtyState = false;
+        $("#saveState").textContent = "● Tersimpan di server";
+        $("#saveState").style.color = "#66816e";
+        showToast("Konfigurasi tersimpan melalui PHP.");
+      } else {
+        dirtyState = true;
+        $("#saveState").textContent = "● Ada perubahan baru";
+        $("#saveState").style.color = "#b16a35";
+        showToast("Snapshot tersimpan. Perubahan terbaru masih perlu disimpan.");
+      }
     }
   } catch (error) {
-    dirtyState = true;
-    $("#saveState").textContent = "● Gagal disimpan";
-    $("#saveState").style.color = "#b13f35";
-    showToast("Penyimpanan server gagal. Draft lokal tetap tersedia.");
+    if (config.project.id === startedProjectId) {
+      dirtyState = true;
+      $("#saveState").textContent = "● Gagal disimpan";
+      $("#saveState").style.color = "#b13f35";
+      showToast("Penyimpanan server gagal. Draft lokal tetap tersedia.");
+    }
     console.error("Gagal menyimpan konfigurasi:", error);
   } finally {
     saveInFlight = false;
