@@ -14,6 +14,18 @@ if (!is_dir($mediaDir) && !mkdir($mediaDir, 0750, true) && !is_dir($mediaDir)) {
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 if ($method === 'GET') {
+    $requested = (string) ($_GET['file'] ?? '');
+    if ($requested !== '') {
+        if (!preg_match('/^[a-f0-9]{24}\\.(jpg|png|webp)$/', $requested)) json_response(['ok' => false, 'error' => 'Nama file tidak valid.'], 400);
+        $path = $mediaDir . '/' . $requested;
+        if (!is_file($path)) json_response(['ok' => false, 'error' => 'Media tidak ditemukan.'], 404);
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->file($path) ?: 'application/octet-stream';
+        header('Content-Type: ' . $mime);
+        header('Content-Length: ' . filesize($path));
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
+        exit;
+    }
     $items = [];
     foreach (glob($mediaDir . '/*') ?: [] as $path) {
         if (is_file($path)) $items[] = ['file' => basename($path), 'bytes' => filesize($path), 'url' => 'media.php?project_id=' . rawurlencode($projectId) . '&file=' . rawurlencode(basename($path))];
