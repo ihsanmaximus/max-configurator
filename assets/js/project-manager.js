@@ -42,7 +42,7 @@
       const base=window.MaximusConfigurator.getDefaultConfig();
       base.project={id:"",name,package:"paket-2"};
       const result=await api(API,{method:"POST",body:JSON.stringify({name,config:base})});
-      await refresh(); await openProject(result.project.id, true); $("#pmNewName").value=""; renderManager();
+      await refresh(); await openProject(result.project.id, true); $("#pmNewName").value="";
     } catch(e) { $("#pmStatus").textContent=e.message; }
   }
   async function openProject(id, force=false) {
@@ -51,7 +51,8 @@
       const result=await api(API+"?id="+encodeURIComponent(id));
       window.MaximusConfigurator.setConfig(result.config);
       window.dispatchEvent(new Event("maximus:project-changed"));
-      await refresh(); renderManager();
+      await refresh();
+      $("#projectManagerModal")?.classList.remove("show");
       $("#pmStatus").textContent="Project aktif: "+result.config.project.name;
     } catch(e) { $("#pmStatus").textContent=e.message; }
   }
