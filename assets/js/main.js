@@ -87,8 +87,9 @@ function setPath(path, value) {
 function field(label, path, value, limit, multiline = false, help = "") {
   const tag = multiline ? "textarea" : "input";
   const attrs = multiline ? ' rows="3"' : ' type="text"';
-  return '<label class="field"><span>' + esc(label) + '</span><' + tag + ' data-path="' + path + '" maxlength="' + limit + '"' + attrs + '>' + (multiline ? esc(value) : "") + '</' + tag + '>' +
-    (!multiline ? "" : "") + '<small class="counter">' + String(value ?? "").length + ' / ' + limit + ' karakter</small>' +
+  const initialValue = multiline ? esc(value) : ' value="' + esc(value) + '"';
+  return '<label class="field"><span>' + esc(label) + '</span><' + tag + ' data-path="' + path + '" maxlength="' + limit + '"' + attrs + initialValue + '>' + (multiline ? esc(value) : "") + '</' + tag + '>' +
+    '<small class="counter">' + String(value ?? "").length + ' / ' + limit + ' karakter</small>' +
     (help ? '<small>' + esc(help) + '</small>' : '') + '</label>';
 }
 function bindDynamicFields() {
