@@ -14,7 +14,7 @@
     <button class="nav-item active" data-panel="content">▤ <b>Konten Website</b></button>
     <button class="nav-item" data-panel="identity">◈ <b>Identitas Visual</b></button>
     <button class="nav-item" data-panel="contact">♧ <b>Kontak & Sosial</b></button>
-    <button class="nav-item" data-panel="sections">▱ <b>Daftar Section</b></button>
+    <button class="nav-item" data-panel="sections">▱ <b>Daftar Section</b></button><button class="nav-item" data-panel="media">▧ <b>Media Library</b></button>
   </nav>
   <div class="package-note"><small>RUANG LINGKUP PAKET 2</small><h3>Fixed Structure<br>+ Dynamic Content</h3><ul><li>Ubah teks & informasi</li><li>Ganti identitas</li><li>Atur kontak & sosial</li><li>Struktur tetap</li></ul></div>
   <div class="sidebar-foot">MAXIMUS · CLIENT CONFIGURATION</div>
@@ -48,6 +48,12 @@
   <section class="panel-section hidden" id="sectionsPanel"><div class="notice"><b>Struktur Paket 2 bersifat tetap.</b><p>Menambah, menghapus, menonaktifkan, atau mengubah urutan section tersedia pada paket dengan struktur modular.</p></div><div class="section-list">
     <div>⌂ <b>Hero</b><small>Bagian pembuka</small><em>Aktif · Terkunci</em></div><div>◎ <b>About</b><small>Profil singkat</small><em>Aktif · Terkunci</em></div><div>✳ <b>Keahlian</b><small>Keahlian / layanan</small><em>Aktif · Terkunci</em></div><div>▤ <b>Artikel</b><small>Artikel statis</small><em>Aktif · Terkunci</em></div><div>◇ <b>FAQ & CTA</b><small>Pertanyaan dan ajakan</small><em>Aktif · Terkunci</em></div><div>⌄ <b>Footer</b><small>Informasi penutup</small><em>Aktif · Terkunci</em></div>
   </div></section>
+<section class="panel-section hidden" id="mediaPanel">
+  <div class="notice"><b>Media milik project aktif</b><p>File gambar disimpan terpisah berdasarkan ID project. Format JPG, PNG, WebP. Maksimal 5 MB per file.</p></div>
+  <div class="media-upload-box"><label class="field"><span>Upload gambar</span><input id="mediaFile" type="file" accept="image/jpeg,image/png,image/webp"></label><button class="btn btn-primary" id="uploadMedia" type="button">Upload ke Project</button></div>
+  <div class="media-toolbar"><b>Perpustakaan Media</b><button class="btn btn-outline" id="refreshMedia" type="button">↻ Muat ulang</button></div>
+  <div id="mediaGrid" class="media-grid"><p class="pm-empty">Memuat media...</p></div>
+</section>
 </section>
 <section class="preview-column" id="previewColumn">
   <div class="preview-toolbar"><div class="device-switch"><button class="active" data-device="desktop">▣ Desktop</button><button data-device="mobile">▯ Mobile</button></div><button class="btn btn-browser" id="refreshPreview">↻ Refresh Preview</button></div>
@@ -55,4 +61,4 @@
   <p class="preview-caption">Live preview · Konten demonstrasi · Perubahan tampil sebelum disimpan</p>
 </section>
 </div></main></div><div class="toast" id="toast" role="status"></div>
-<script src="assets/js/main.js"></script><script src="assets/js/project-manager.js"></script></body></html>
+<script src="assets/js/main.js"></script><script src="assets/js/project-manager.js"></script><script src="assets/js/media-library.js"></script></body></html>
