@@ -206,7 +206,7 @@ async function saveDraft() {
   try {
     config.project.updatedAt = new Date().toISOString();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    const response = await fetch("backend/api/projects.php?id=" + encodeURIComponent(config.project.id), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(config) });
+    const response = await fetch("backend/api/projects.php?id=" + encodeURIComponent(config.project.id), { method: "PUT", headers: { "Content-Type": "application/json", "X-CSRF-Token": window.MaximusAuth?.getToken?.() || "" }, body: JSON.stringify(config) });
     if (!response.ok) throw new Error("API PHP tidak tersedia atau project belum terdaftar.");
     dirtyState = false;
     $("#saveState").textContent = "● Tersimpan di server";
