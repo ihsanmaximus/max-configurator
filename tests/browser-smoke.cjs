@@ -32,14 +32,14 @@ const { chromium } = require("playwright");
     if (persisted !== "Browser E2E Saved Title") throw new Error("Saved editor value did not persist after reload: " + persisted);
 
     // Basic responsive overflow check at common phone widths.
-    for (const width of [768, 390, 360]) {
+    for (const width of [1440, 1024, 900, 768, 390, 360]) {
       await page.setViewportSize({ width, height: 900 });
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
       if (overflow) throw new Error("Horizontal page overflow at viewport width " + width);
     }
 
     if (errors.length) throw new Error("Browser JavaScript errors: " + errors.join(" | "));
-    console.log("PASS: browser login, project creation, editor save/reload persistence, responsive widths 768/390/360, no page errors.");
+    console.log("PASS: browser login, project creation, editor save/reload persistence, responsive widths 1440/1024/900/768/390/360, no page errors.");
   } finally {
     await browser.close();
   }
