@@ -15,6 +15,16 @@ if (!is_dir($mediaDir) && !mkdir($mediaDir, 0750, true) && !is_dir($mediaDir)) {
 }
 
 $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+if ($method === 'GET' && (string) ($_GET['action'] ?? '') === 'backups') {
+    $items = [];
+    foreach (glob($dir . '/media-backups/*') ?: [] as $path) {
+        if (is_file($path) && preg_match('/^[a-f0-9]{24}\\.(jpg|png|webp)$/', basename($path))) {
+            $items[] = ['file' => basename($path), 'bytes' => filesize($path)];
+        }
+    }
+    json_response(['ok' => true, 'backups' => $items]);
+}
+
 if ($method === 'GET') {
     $requested = (string) ($_GET['file'] ?? '');
     if ($requested !== '') {
@@ -44,16 +54,6 @@ if ($method === 'POST' && (string) ($_GET['action'] ?? '') === 'restore') {
     if (is_file($mediaDir . '/' . $name)) json_response(['ok' => false, 'error' => 'Media dengan nama tersebut sudah tersedia.'], 409);
     if (!copy($backupPath, $mediaDir . '/' . $name)) json_response(['ok' => false, 'error' => 'Pemulihan media gagal.'], 500);
     json_response(['ok' => true, 'file' => $name, 'restored' => true]);
-}
-
-if ($method === 'GET' && (string) ($_GET['action'] ?? '') === 'backups') {
-    $items = [];
-    foreach (glob($dir . '/media-backups/*') ?: [] as $path) {
-        if (is_file($path) && preg_match('/^[a-f0-9]{24}\\.(jpg|png|webp)$/', basename($path))) {
-            $items[] = ['file' => basename($path), 'bytes' => filesize($path)];
-        }
-    }
-    json_response(['ok' => true, 'backups' => $items]);
 }
 
 if ($method === 'POST') {
